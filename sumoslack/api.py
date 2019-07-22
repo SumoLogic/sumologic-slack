@@ -149,7 +149,8 @@ class FetchPaginatedDataBasedOnLatestAndOldestTimeStamp(SlackAPI):
                     else:
                         self.log.info("No Result found for %s, Oldest %s, Latest %s", self.channel_name, args["oldest"],
                                       args["latest"])
-                        self.save_state({"fetch_oldest": current_state["fetch_oldest"], "fetch_latest": None,
+                        self.save_state({"fetch_oldest": current_state["fetch_oldest"],
+                                         "fetch_latest": None,
                                          "last_record_fetched_timestamp": None})
                 else:
                     self.log.error("Failed to fetch LogType %s, %s, oldest %s, latest %s, error %s", method,
@@ -197,7 +198,7 @@ class FetchPaginatedDataBasedOnPageNumber(SlackAPI):
             self.log.info("Completed LogType %s, Page %s, Before %s", method, self.page, args["before"])
 
 
-class FetchAuditData(SlackAPI):
+class FetchAuditData(FetchCursorBasedData):
 
     def fetch(self):
         output_handler = OutputHandlerFactory.get_handler(self.collection_config['OUTPUT_HANDLER'],
@@ -212,7 +213,7 @@ class FetchAuditData(SlackAPI):
 
         try:
             while next_request:
-                send_success = has_more_data = True
+                send_success = has_more_data = False
                 status, result = ClientMixin.make_request(url, method="get", session=sess, logger=self.log,
                                                           TIMEOUT=self.collection_config['TIMEOUT'],
                                                           MAX_RETRY=self.collection_config['MAX_RETRY'],
@@ -231,19 +232,26 @@ class FetchAuditData(SlackAPI):
                                           log_type, args["latest"], args["oldest"], len(data_to_be_sent))
 
                             args["latest"] = last_record_fetched_timestamp
-                            self.save_state(
-                                {"fetch_oldest": current_state["fetch_oldest"],
-                                 "fetch_latest": current_state["fetch_latest"],
-                                 "last_record_fetched_timestamp": last_record_fetched_timestamp})
+                            if self._next_cursor_is_present(result):
+                                has_more_data = True
+                                args["latest"] = last_record_fetched_timestamp
+                                self.save_state(
+                                    {"fetch_oldest": current_state["fetch_oldest"],
+                                     "fetch_latest": current_state["fetch_latest"],
+                                     "last_record_fetched_timestamp": last_record_fetched_timestamp})
+                            else:
+                                self.log.info("moving time window for LogType %s, oldest %s, latest %s", self.get_key(),
+                                              args["oldest"], args["latest"])
+                                self.save_state({"fetch_oldest": current_state["fetch_latest"], "fetch_latest": None,
+                                                 "last_record_fetched_timestamp": None})
                         else:
                             self.log.error("Failed to sent LogType %s, oldest %s, latest %s", log_type,
                                            args["oldest"], args["latest"])
                     else:
                         self.log.info("No Result found for %s, Oldest %s, Latest %s", log_type, args["oldest"],
                                       args["latest"])
-                        self.save_state({"fetch_oldest": current_state["fetch_latest"], "fetch_latest": None,
-                                         "last_record_fetched_timestamp": None})
-                        has_more_data = False
+                        self.save_state({"fetch_oldest": current_state["fetch_oldest"],
+                                         "fetch_latest": None, "last_record_fetched_timestamp": None})
                 else:
                     self.log.error("Failed to fetch LogType %s, oldest %s, latest %s, error %s", log_type,
                                    args["oldest"], args["latest"], result["error"])
@@ -570,7 +578,7 @@ class AuditLogsAPI(FetchAuditData):
             if "last_record_fetched_timestamp" in state and state["last_record_fetched_timestamp"] is not None:
                 latest = state["last_record_fetched_timestamp"]
 
-        return self.url, {"latest": latest, "oldest": oldest, "limit": 9999}
+        return self.url, {"latest": latest, "oldest": oldest, "inclusive": True, "limit": 9999}
 
     def build_send_params(self):
         return {
