@@ -85,7 +85,7 @@ Logging:
  BACKUP_COUNT: 7
  ENABLE_CONSOLE_LOG: true
  ENABLE_LOGFILE: false
- LOG_FILEPATH: /tmp/sumoapiclient.log
+ LOG_FILEPATH: /tmp/sumoslack.log
  LOG_LEVEL: "DEBUG"
 
 Collection:
@@ -100,11 +100,11 @@ Collection:
  END_TIME_EPOCH_OFFSET_SECONDS: 120
  BACKFILL_DAYS: 20
  DBNAME: "sumoslack"
- DB_DIR: ""
+ DB_DIR: "~/sumo/"
 
 DeployMetaData:
- PACKAGENAME: sumologic-slack-collector
- SRC_FOLDER_NAME: sumoslackcollector
+ PACKAGENAME: sumologic-slack
+ SRC_FOLDER_NAME: sumoslack
  APPNAME: Slack
 
 SumoLogic:
