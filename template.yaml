@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'This solution consists of a lambda functions which is used to fetch
+  logs from Slack and ingest to Sumo Logic.
+
+  '
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Author: Sumo Logic
+    Description: This solution consists of a lambda functions which is used to fetch
+      logs from Slack and ingest to Sumo Logic.
+    HomePageUrl: https://github.com/SumoLogic/sumologic-slack
+    Labels:
+    - lambda
+    - sumologic
+    - atlas
+    - serverless
+    - Slack
+    LicenseUrl: ./LICENSE
+    Name: sumologic-slack
+    ReadmeUrl: ./README.md
+    SemanticVersion: 1.0.6
+    SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
+    SpdxLicenseId: Apache-2.0
+Outputs:
+  SlackFunction:
+    Description: SlackScheduler Function ARN
+    Value:
+      Fn::GetAtt:
+      - SlackFunction
+      - Arn
+Parameters:
+  HttpLogsEndpoint:
+    Type: String
+  Token:
+    Type: String
+Resources:
+  SlackFunction:
+    Properties:
+      CodeUri: ./target/aws/build/
+      Environment:
+        Variables:
+          ENVIRONMENT: aws
+          HTTP_LOGS_ENDPOINT:
+            Ref: HttpLogsEndpoint
+          TOKEN:
+            Ref: Token
+      Events:
+        ScheduleRule:
+          Properties:
+            Schedule: rate(10 minutes)
+          Type: Schedule
+      Handler: main.main
+      MemorySize: 256
+      Policies:
+      - AmazonDynamoDBFullAccess
+      Runtime: python3.7
+      Timeout: 900
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
