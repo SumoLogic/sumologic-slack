@@ -8,7 +8,7 @@ from slackclient import SlackClient
 from sumoappclient.common.utils import get_current_timestamp
 from sumoappclient.sumoclient.base import BaseCollector
 
-from sumoslack.api import UsersDataAPI, ChannelsMessagesAPI, AccessLogsAPI, AuditLogsAPI, ChannelsDataAPI
+from api import UsersDataAPI, ChannelsMessagesAPI, AccessLogsAPI, AuditLogsAPI, ChannelsDataAPI
 
 
 def get_current_dir():
