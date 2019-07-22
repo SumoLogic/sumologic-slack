@@ -95,7 +95,7 @@ class SumoSlackCollector(BaseCollector):
     def _get_channel_ids(self):
         channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name)
         obj = channels_data.get_state()
-        if obj is None or ("last_fetched" in obj and not (
+        if obj is None or ("ids" in obj and len(obj["ids"]) <= 0) or ("last_fetched" in obj and not (
                 get_current_timestamp() - obj["last_fetched"] < channels_data.DATA_REFRESH_TIME)):
             channels_data.fetch()
         else:
@@ -129,7 +129,7 @@ class SumoSlackCollector(BaseCollector):
             self.kvstore.release_lock_on_expired_key(self.SINGLE_PROCESS_LOCK_KEY, expiry_min=10)
 
 
-def main(context=None):
+def main(*args, **kwargs):
     try:
         ns = SumoSlackCollector()
         ns.run()
