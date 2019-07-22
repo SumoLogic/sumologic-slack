@@ -1,5 +1,4 @@
-include *.txt
-include *.yaml
+include requirements.txt
 include LICENSE
 include VERSION
 recursive-include sumoslack *.yaml
