@@ -15,10 +15,10 @@ Metadata:
     - atlas
     - serverless
     - Slack
-    LicenseUrl: s3://appdevstore/86d3f3a95c324c9479bd8986968f4327
+    LicenseUrl: s3://appdevstore/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
     ReadmeUrl: s3://appdevstore/cc2b6556446466b75424a87ade35bba0
-    SemanticVersion: 1.0.6
+    SemanticVersion: 1.0.0
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -36,7 +36,7 @@ Parameters:
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore/b23786fad83363a2010108c96889f126
+      CodeUri: s3://appdevstore/44d1a10e771718f59f9a4c45f72bf229
       Environment:
         Variables:
           ENVIRONMENT: aws

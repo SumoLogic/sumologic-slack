@@ -17,7 +17,7 @@ with io.open(join(here, 'README.md'), encoding='utf-8') as f:
 
 
 CONSOLE_SCRIPTS = [
-    'sumoslack=sumoslack.slack:main'
+    'sumoslack=sumoslack.main:main'
 ]
 
 setup(
