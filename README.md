@@ -53,8 +53,8 @@ This collector can be deployed both onprem and on cloud.
         ![Deploy](https://appdev-readme-resources.s3.amazonaws.com/slack/Deploy.png)
 
             ```
-            * **Token**: Paste the URL for the SLACK API TOKEN from step 1.
-            * **HttpLogsEndpoint**: Paste the URL for the HTTP Logs source from step 2.
+            Token: Paste the URL for the SLACK API TOKEN from step 1.
+            HttpLogsEndpoint: Paste the URL for the HTTP Logs source from step 2.
             ```
         * Click Deploy.
 
