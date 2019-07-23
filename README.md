@@ -47,10 +47,10 @@ This collector can be deployed both onprem and on cloud.
 
         * Go to https://serverlessrepo.aws.amazon.com/applications
         * Search for “sumologic-slack” and select the app as shown below:
-        ![App](/resources/App.png)
+        ![App](https://appdev-readme-resources.s3.amazonaws.com/slack/App.png)
 
         * In the Configure application parameters panel, shown below:
-        ![Deploy](/resources/Deploy.png)
+        ![Deploy](https://appdev-readme-resources.s3.amazonaws.com/slack/Deploy.png)
 
             ```
             * **Token**: Paste the URL for the SLACK API TOKEN from step 1.
