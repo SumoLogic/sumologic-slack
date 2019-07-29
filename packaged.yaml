@@ -17,7 +17,7 @@ Metadata:
     - Slack
     LicenseUrl: s3://appdevstore/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
-    ReadmeUrl: s3://appdevstore/7151f3de07a06efb8000cfddc502b477
+    ReadmeUrl: s3://appdevstore/a4f6f2ba5f0edde2440caf90e81ea530
     SemanticVersion: 1.0.0
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
@@ -36,7 +36,7 @@ Parameters:
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore/1a34368ed985c03a5ae5dc56f7401247
+      CodeUri: s3://appdevstore/5ec6a699b173df91997ffbab4f705042
       Environment:
         Variables:
           ENVIRONMENT: aws
