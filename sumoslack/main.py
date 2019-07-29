@@ -86,7 +86,7 @@ class SumoSlackCollector(BaseCollector):
                 self.kvstore.set("Access_logs_page_index", next_page)
                 if next_page == self.MAX_PAGE:
                     self.kvstore.set("Access_logs_page_index", 1)
-                    self.kvstore.delete("fetch_before")
+                    self.kvstore.delete("AccessLogs")
 
             if "AUDIT_LOGS" in self.api_config['LOG_TYPES'] and "AUDIT_LOG_URL" in self.api_config:
                 tasks.append(AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name))
@@ -105,7 +105,7 @@ class SumoSlackCollector(BaseCollector):
     def run(self, *args, **kwargs):
         if self.is_running():
             try:
-                self.log.info('Starting MongoDB Atlas Forwarder...')
+                self.log.info('Starting Slack Sumo Collector...')
                 task_params = self.build_task_params()
                 shuffle(task_params)
                 all_futures = {}
