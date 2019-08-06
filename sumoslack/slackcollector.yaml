@@ -86,7 +86,7 @@ Logging:
  ENABLE_CONSOLE_LOG: true
  ENABLE_LOGFILE: false
  LOG_FILEPATH: /tmp/sumoslack.log
- LOG_LEVEL: "DEBUG"
+ LOG_LEVEL: "INFO"
 
 Collection:
  ENVIRONMENT: onprem

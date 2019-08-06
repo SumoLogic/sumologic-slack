@@ -79,19 +79,19 @@ class FetchCursorBasedData(SlackAPI):
                     elif "Retry-After" in result["headers"]:
                         # The `Retry-After` header will tell you how long to wait before retrying
                         delay = int(result["headers"]["Retry-After"])
-                        self.log.warn("Rate limited. Retrying in %s seconds", str(delay))
+                        self.log.warning("Rate limited. Retrying in %s seconds", str(delay))
                         time.sleep(delay)
                         # set the counter for retry
                         retry_counter += 1
                         # retry only for Max Retry times
                         if retry_counter <= self.collection_config["MAX_RETRY"]:
-                            self.log.info("Retrying the method %s for %s", method, args["counter"])
+                            self.log.debug("Retrying the method %s for %s", method, args["counter"])
                             retry_request = True
                         else:
                             retry_request = False
                     else:
-                        self.log.error("Failed to fetch LogType %s, Cursor %s, Error %s", method, args["cursor"],
-                                       result["error"])
+                        self.log.warning("Failed to fetch LogType %s, Cursor %s, Error %s", method, args["cursor"],
+                                         result["error"])
 
                 if retry_request:
                     next_request = True
@@ -126,7 +126,7 @@ class FetchPaginatedDataBasedOnLatestAndOldestTimeStamp(SlackAPI):
                             page_counter += 1
                             record_counter += len(data_to_be_sent)
                             last_record_fetched_timestamp = data_to_be_sent[-1]["ts"]
-                            self.log.info("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
+                            self.log.debug("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
                                           method, args["latest"], args["oldest"], len(data_to_be_sent))
 
                             if "has_more" in result and result["has_more"]:
@@ -137,25 +137,25 @@ class FetchPaginatedDataBasedOnLatestAndOldestTimeStamp(SlackAPI):
                                      "fetch_latest": current_state["fetch_latest"],
                                      "last_record_fetched_timestamp": last_record_fetched_timestamp})
                             else:
-                                self.log.info("moving time window for LogType %s, %s, oldest %s, latest %s", method,
+                                self.log.debug("moving time window for LogType %s, %s, oldest %s, latest %s", method,
                                               self.channel_name, args["oldest"],
                                               args["latest"])
                                 self.save_state({"fetch_oldest": current_state["fetch_latest"], "fetch_latest": None,
                                                  "last_record_fetched_timestamp": None})
                         else:
-                            self.log.error("Failed to sent LogType %s, %s, oldest %s, latest %s", method,
-                                           self.channel_name, args["oldest"],
-                                           args["latest"])
+                            self.log.warning("Failed to sent LogType %s, %s, oldest %s, latest %s", method,
+                                             self.channel_name, args["oldest"],
+                                             args["latest"])
                     else:
-                        self.log.info("No Result found for %s, Oldest %s, Latest %s", self.channel_name, args["oldest"],
+                        self.log.debug("No Result found for %s, Oldest %s, Latest %s", self.channel_name, args["oldest"],
                                       args["latest"])
                         self.save_state({"fetch_oldest": current_state["fetch_oldest"],
                                          "fetch_latest": None,
                                          "last_record_fetched_timestamp": None})
                 else:
-                    self.log.error("Failed to fetch LogType %s, %s, oldest %s, latest %s, error %s", method,
-                                   self.channel_name,
-                                   args["oldest"], args["latest"], result["error"])
+                    self.log.warning("Failed to fetch LogType %s, %s, oldest %s, latest %s, error %s", method,
+                                     self.channel_name,
+                                     args["oldest"], args["latest"], result["error"])
                 next_request = fetch_success and send_success and has_more_data and self.is_time_remaining()
         except Exception as exc:
             self.log.error("Error Occurred while fetching LogType %s, %s, Error %s", method, self.channel_name,
@@ -180,17 +180,17 @@ class FetchPaginatedDataBasedOnPageNumber(SlackAPI):
                 if len(data_to_be_sent) > 0:
                     send_success = output_handler.send(data_to_be_sent, **self.build_send_params())
                     if send_success:
-                        self.log.info("Sent successfully for LogType %s, Page %s, Before %s, Records %s", method,
+                        self.log.debug("Sent successfully for LogType %s, Page %s, Before %s, Records %s", method,
                                       self.page, args["before"], len(data_to_be_sent))
                     else:
-                        self.log.error("Send failed for LogType %s, Page %s, Before %s", method, self.page,
-                                       args["before"])
+                        self.log.warning("Send failed for LogType %s, Page %s, Before %s", method, self.page,
+                                         args["before"])
                 else:
-                    self.log.info("No Result fetched for LogType %s, Page %s, Before %s", method, self.page,
+                    self.log.debug("No Result fetched for LogType %s, Page %s, Before %s", method, self.page,
                                   args["before"])
             else:
-                self.log.error("Fetch failed for LogType %s, Page %s, Before %s, Error %s", method, self.page,
-                               args["before"], result["error"])
+                self.log.warning("Fetch failed for LogType %s, Page %s, Before %s, Error %s", method, self.page,
+                                 args["before"], result["error"])
         except Exception as exc:
             self.log.error("Error Occurred while fetching LogType %s, Page %s, Before %s, Error %s", method, self.page,
                            args["before"], exc)
@@ -228,7 +228,7 @@ class FetchAuditData(FetchCursorBasedData):
                             page_counter += 1
                             record_counter += len(data_to_be_sent)
                             last_record_fetched_timestamp = data_to_be_sent[-1]["date_create"]
-                            self.log.info("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
+                            self.log.debug("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
                                           log_type, args["latest"], args["oldest"], len(data_to_be_sent))
 
                             args["latest"] = last_record_fetched_timestamp
@@ -240,20 +240,20 @@ class FetchAuditData(FetchCursorBasedData):
                                      "fetch_latest": current_state["fetch_latest"],
                                      "last_record_fetched_timestamp": last_record_fetched_timestamp})
                             else:
-                                self.log.info("moving time window for LogType %s, oldest %s, latest %s", self.get_key(),
+                                self.log.debug("moving time window for LogType %s, oldest %s, latest %s", self.get_key(),
                                               args["oldest"], args["latest"])
                                 self.save_state({"fetch_oldest": current_state["fetch_latest"], "fetch_latest": None,
                                                  "last_record_fetched_timestamp": None})
                         else:
-                            self.log.error("Failed to sent LogType %s, oldest %s, latest %s", log_type,
+                            self.log.warning("Failed to sent LogType %s, oldest %s, latest %s", log_type,
                                            args["oldest"], args["latest"])
                     else:
-                        self.log.info("No Result found for %s, Oldest %s, Latest %s", log_type, args["oldest"],
+                        self.log.debug("No Result found for %s, Oldest %s, Latest %s", log_type, args["oldest"],
                                       args["latest"])
                         self.save_state({"fetch_oldest": current_state["fetch_oldest"],
                                          "fetch_latest": None, "last_record_fetched_timestamp": None})
                 else:
-                    self.log.error("Failed to fetch LogType %s, oldest %s, latest %s, error %s", log_type,
+                    self.log.warning("Failed to fetch LogType %s, oldest %s, latest %s, error %s", log_type,
                                    args["oldest"], args["latest"], result["error"])
                 next_request = fetch_success and send_success and has_more_data and self.is_time_remaining()
         except Exception as exc:
@@ -323,7 +323,7 @@ class UsersDataAPI(FetchCursorBasedData):
 
         # Send user data every 24 hours and meanwhile if updated send it
         if last_updated == user_data["updated"] and get_current_timestamp() - last_sent < self.DATA_REFRESH_TIME:
-            self.log.info("user already present")
+            self.log.debug("user already present")
         else:
             transformed_user_data = {"id": user_data.get("id"), "name": user_data.get("name"),
                                      "deleted": user_data.get("deleted", False),
