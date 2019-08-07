@@ -1,6 +1,6 @@
 Slack:
  TOKEN: null
- AUDIT_LOG_URL: https://api.slack.com/audit/v1/logs
+ AUDIT_LOG_URL: https://api.slack.com/audit/v1/logs/
  LOG_TYPES:
   - USER_LOGS
   - ACCESS_LOGS
@@ -86,7 +86,7 @@ Logging:
  ENABLE_CONSOLE_LOG: true
  ENABLE_LOGFILE: false
  LOG_FILEPATH: /tmp/sumoslack.log
- LOG_LEVEL: "INFO"
+ LOG_LEVEL: "DEBUG"
 
 Collection:
  ENVIRONMENT: onprem
