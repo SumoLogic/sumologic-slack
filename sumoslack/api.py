@@ -534,8 +534,10 @@ class AccessLogsAPI(FetchPaginatedDataBasedOnPageNumber):
         if content is not None and "logins" in content:
             logs = content["logins"]
             for log in logs:
-                hash_data = hash(log["user_id"] + log["ip"] + log["user_agent"])
-                count = self.kvstore.get(hash_data, 0)
+                hash_data = str(hash(log["user_id"] + log["ip"] + log["user_agent"]))
+                count = 0
+                if self.kvstore.has_key(hash_data):
+                    count = self.kvstore.get(hash_data)
 
                 if count == 0 or count != log["count"]:
                     log["teamName"] = self.team_name
