@@ -18,7 +18,7 @@ Metadata:
     LicenseUrl: ./LICENSE
     Name: sumologic-slack
     ReadmeUrl: ./README.md
-    SemanticVersion: 1.0.3
+    SemanticVersion: 1.0.4
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -53,7 +53,7 @@ Resources:
       MemorySize: 256
       Policies:
       - AmazonDynamoDBFullAccess
-      Runtime: python3.7
+      Runtime: python3.7e
       Timeout: 900
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31

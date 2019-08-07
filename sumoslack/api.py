@@ -219,7 +219,8 @@ class FetchAuditData(FetchCursorBasedData):
                                                           TIMEOUT=self.collection_config['TIMEOUT'],
                                                           MAX_RETRY=self.collection_config['MAX_RETRY'],
                                                           BACKOFF_FACTOR=self.collection_config['BACKOFF_FACTOR'],
-                                                          params=args)
+                                                          params=args,
+                                                          headers={"Authorization": "Bearer " + self.token})
                 fetch_success = status and "entries" in result
                 if fetch_success:
                     data_to_be_sent = self.transform_data(result)

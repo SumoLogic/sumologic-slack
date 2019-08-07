@@ -1,6 +1,6 @@
 Slack:
  TOKEN: null
- AUDIT_LOG_URL: https://api.slack.com/audit/v1/logs/
+ AUDIT_LOG_URL: https://api.slack.com/audit/v1/logs
  LOG_TYPES:
   - USER_LOGS
   - ACCESS_LOGS
@@ -98,7 +98,7 @@ Collection:
  COMPRESSED: true
  MAX_PAYLOAD_BYTESIZE: 500000
  END_TIME_EPOCH_OFFSET_SECONDS: 120
- BACKFILL_DAYS: 0
+ BACKFILL_DAYS: 6
  DBNAME: "sumoslack"
  DB_DIR: "~/sumo/"
 

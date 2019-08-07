@@ -18,7 +18,7 @@ Metadata:
     LicenseUrl: s3://appdevstore/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
     ReadmeUrl: s3://appdevstore/a4f6f2ba5f0edde2440caf90e81ea530
-    SemanticVersion: 1.0.3
+    SemanticVersion: 1.0.4
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -36,7 +36,7 @@ Parameters:
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore/18ab6092f95a29e1dd1764e5c8ed0768
+      CodeUri: s3://appdevstore/68ae763c60b9bb3c9525ffdc56539e26
       Environment:
         Variables:
           ENVIRONMENT: aws
@@ -53,7 +53,7 @@ Resources:
       MemorySize: 256
       Policies:
       - AmazonDynamoDBFullAccess
-      Runtime: python3.7
+      Runtime: python3.7e
       Timeout: 900
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31
