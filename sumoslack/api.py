@@ -1,5 +1,8 @@
 import time
 
+import sys
+sys.path.insert(0, '/opt')  # layer packages are in opt directory
+
 from slackclient import SlackClient
 from sumoappclient.common.utils import get_current_timestamp
 from sumoappclient.sumoclient.base import BaseAPI

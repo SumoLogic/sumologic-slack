@@ -3,6 +3,8 @@ import sys
 import traceback
 from random import shuffle
 
+sys.path.insert(0, '/opt')  # layer packages are in opt directory
+
 from concurrent import futures
 from slackclient import SlackClient
 from sumoappclient.common.utils import get_current_timestamp
