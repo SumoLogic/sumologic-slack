@@ -54,8 +54,8 @@ Resources:
       Policies:
       - AmazonDynamoDBFullAccess
       Runtime: python3.7
-      Layers:
-        - !Sub 'arn:aws:lambda:${AWS::Region}:956882708938:layer:slack_dep:1'
+      #Layers:
+      #  - !Sub 'arn:aws:lambda:${AWS::Region}:956882708938:layer:slack_dep:1'
       Timeout: 900
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31
