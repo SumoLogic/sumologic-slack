@@ -97,7 +97,7 @@ class SumoSlackCollector(BaseCollector):
                 shuffle_tasks.append(AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name))
 
         shuffle(shuffle_tasks)
-        tasks.append(shuffle_tasks)
+        tasks.extend(shuffle_tasks)
         return tasks
 
     def _get_channel_ids(self):
