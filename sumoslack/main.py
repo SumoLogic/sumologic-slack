@@ -58,11 +58,15 @@ class SumoSlackCollector(BaseCollector):
             if "USER_LOGS" in self.api_config['LOG_TYPES']:
                 tasks.append(UsersDataAPI(self.kvstore, self.config, self.team_name))
 
+            channels = None
             if "CHANNELS_LOGS" in self.api_config['LOG_TYPES']:
+                channels = self._get_channel_ids()
+
+            if "CHANNELS_MESSAGES_LOGS" in self.api_config['LOG_TYPES']:
                 # fetch the state again to check if the channels ID are changed
-                obj = self._get_channel_ids()
-                if obj is not None and "ids" in obj:
-                    channels_ids = obj["ids"]
+
+                if channels is not None and "ids" in channels:
+                    channels_ids = channels["ids"]
                     counter = self.kvstore.get("channel_id_index", 0)
                     next_counter = counter + self.CHANNEL_COUNTER
                     channel_batch = channels_ids[counter: next_counter]

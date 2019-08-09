@@ -5,6 +5,7 @@ Slack:
   - USER_LOGS
   - ACCESS_LOGS
   - CHANNELS_LOGS
+  - CHANNELS_MESSAGES_LOGS
   - AUDIT_LOGS
 # Below are different types of audit logs that can be sent. Remove if not required
  WorkspaceAuditLog:
@@ -86,7 +87,7 @@ Logging:
  ENABLE_CONSOLE_LOG: true
  ENABLE_LOGFILE: false
  LOG_FILEPATH: /tmp/sumoslack.log
- LOG_LEVEL: "DEBUG"
+ LOG_LEVEL: "INFO"
 
 Collection:
  ENVIRONMENT: onprem
@@ -98,7 +99,7 @@ Collection:
  COMPRESSED: true
  MAX_PAYLOAD_BYTESIZE: 500000
  END_TIME_EPOCH_OFFSET_SECONDS: 120
- BACKFILL_DAYS: 6
+ BACKFILL_DAYS: 0
  DBNAME: "sumoslack"
  DB_DIR: "~/sumo/"
 

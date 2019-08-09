@@ -8,7 +8,7 @@ from sumoappclient.sumoclient.httputils import ClientMixin
 
 
 class SlackAPI(BaseAPI):
-    MOVING_WINDOW_DELTA = 0.001
+    MOVING_WINDOW_DELTA = 1
 
     def __init__(self, kvstore, config, team_name):
         super(SlackAPI, self).__init__(kvstore, config)
