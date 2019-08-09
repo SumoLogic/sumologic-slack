@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 import os
 import sys
 import traceback
@@ -60,9 +61,7 @@ class SumoSlackCollector(BaseCollector):
             if "USER_LOGS" in self.api_config['LOG_TYPES']:
                 tasks.append(UsersDataAPI(self.kvstore, self.config, self.team_name))
 
-            channels = None
-            if "CHANNELS_LOGS" in self.api_config['LOG_TYPES']:
-                channels = self._get_channel_ids()
+            channels = self._get_channel_ids()
 
             if "CHANNELS_MESSAGES_LOGS" in self.api_config['LOG_TYPES']:
                 # fetch the state again to check if the channels ID are changed
@@ -103,7 +102,8 @@ class SumoSlackCollector(BaseCollector):
         obj = channels_data.get_state()
         if obj is None or ("ids" in obj and len(obj["ids"]) <= 0) or ("last_fetched" in obj and not (
                 get_current_timestamp() - obj["last_fetched"] < channels_data.DATA_REFRESH_TIME)):
-            channels_data.fetch()
+            if "CHANNELS_LOGS" in self.api_config['LOG_TYPES']:
+                channels_data.fetch()
         else:
             self.log.info("Channels Data will not be fetched as 6 Data refresh time of 6 Hours not reached")
         return channels_data.get_state()
