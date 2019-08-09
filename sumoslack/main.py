@@ -56,6 +56,7 @@ class SumoSlackCollector(BaseCollector):
 
     def build_task_params(self):
         tasks = []
+        shuffle_tasks = []
         if 'LOG_TYPES' in self.api_config:
             if "USER_LOGS" in self.api_config['LOG_TYPES']:
                 tasks.append(UsersDataAPI(self.kvstore, self.config, self.team_name))
@@ -73,7 +74,7 @@ class SumoSlackCollector(BaseCollector):
 
                     for channels_id in channel_batch:
                         channel = channels_id.split("#")
-                        tasks.append(
+                        shuffle_tasks.append(
                             ChannelsMessagesAPI(self.kvstore, self.config, channel[0], channel[1], self.team_name))
 
                     self.kvstore.set("channel_id_index", next_counter)
@@ -85,7 +86,7 @@ class SumoSlackCollector(BaseCollector):
                 page = self.kvstore.get("Access_logs_page_index", 1)
                 next_page = min(self.MAX_PAGE, page + self.PAGE_COUNTER)
                 for page_number in range(page, next_page):
-                    tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
+                    shuffle_tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
 
                 self.kvstore.set("Access_logs_page_index", next_page)
                 if next_page == self.MAX_PAGE:
@@ -93,7 +94,10 @@ class SumoSlackCollector(BaseCollector):
                     self.kvstore.delete("AccessLogs")
 
             if "AUDIT_LOGS" in self.api_config['LOG_TYPES'] and "AUDIT_LOG_URL" in self.api_config:
-                tasks.append(AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name))
+                shuffle_tasks.append(AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name))
+
+        shuffle(shuffle_tasks)
+        tasks.append(shuffle_tasks)
         return tasks
 
     def _get_channel_ids(self):
@@ -112,7 +116,6 @@ class SumoSlackCollector(BaseCollector):
             try:
                 self.log.info('Starting Slack Sumo Collector...')
                 task_params = self.build_task_params()
-                shuffle(task_params)
                 all_futures = {}
                 self.log.debug("spawning %d workers" % self.config['Collection']['NUM_WORKERS'])
                 with futures.ThreadPoolExecutor(max_workers=self.config['Collection']['NUM_WORKERS']) as executor:
