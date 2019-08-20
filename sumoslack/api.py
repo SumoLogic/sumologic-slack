@@ -1,6 +1,7 @@
 import time
 
 import sys
+
 sys.path.insert(0, '/opt')  # layer packages are in opt directory
 
 from slackclient import SlackClient
@@ -608,5 +609,14 @@ class AuditLogsAPI(FetchAuditData):
                     entry["logType"] = "FileAuditLog"
                 elif action in self.api_config["AppAuditLog"]:
                     entry["logType"] = "AppAuditLog"
+
+                # flat the entity level hierarchy
+                if "entity" in entry and "type" in entry["entity"]:
+                    entity = entry["entity"]
+                    entity_type = entity["type"]
+                    if entity_type in entity:
+                        data = entity[entity_type]
+                        entry["entity"] = data
+
             return entries
         return []
