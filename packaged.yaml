@@ -15,10 +15,10 @@ Metadata:
     - atlas
     - serverless
     - Slack
-    LicenseUrl: s3://appdevstore/5122657d5b9a0d3713e24d3a33eae431
+    LicenseUrl: s3://appdevstore/Slack/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
-    ReadmeUrl: s3://appdevstore/a4f6f2ba5f0edde2440caf90e81ea530
-    SemanticVersion: 1.0.1
+    ReadmeUrl: s3://appdevstore/Slack/a4f6f2ba5f0edde2440caf90e81ea530
+    SemanticVersion: 1.0.0
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -36,7 +36,7 @@ Parameters:
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore/7f531fb93471b8f4e9a391cc447a6b7f
+      CodeUri: s3://appdevstore/Slack/02ffa44fcc2594402989051b994eb531
       Environment:
         Variables:
           ENVIRONMENT: aws
@@ -50,6 +50,8 @@ Resources:
             Schedule: rate(10 minutes)
           Type: Schedule
       Handler: main.main
+      Layers:
+      - Fn::Sub: arn:aws:lambda:${AWS::Region}:956882708938:layer:Slack-deps:5
       MemorySize: 256
       Policies:
       - AmazonDynamoDBFullAccess

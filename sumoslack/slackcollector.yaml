@@ -107,6 +107,7 @@ DeployMetaData:
  PACKAGENAME: sumologic-slack
  SRC_FOLDER_NAME: sumoslack
  APPNAME: Slack
+ ENABLE_LAYER: true
 
 SumoLogic:
  HTTP_LOGS_ENDPOINT: null
