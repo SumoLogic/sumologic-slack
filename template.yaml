@@ -12,7 +12,6 @@ Metadata:
     Labels:
     - lambda
     - sumologic
-    - atlas
     - serverless
     - Slack
     LicenseUrl: ./LICENSE

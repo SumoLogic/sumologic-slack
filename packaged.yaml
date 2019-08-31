@@ -12,7 +12,6 @@ Metadata:
     Labels:
     - lambda
     - sumologic
-    - atlas
     - serverless
     - Slack
     LicenseUrl: s3://appdevstore/Slack/v1.0.1/5122657d5b9a0d3713e24d3a33eae431

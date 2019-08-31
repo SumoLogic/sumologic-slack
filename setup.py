@@ -27,7 +27,7 @@ setup(
     install_requires=INSTALL_REQUIRES,
     # PyPI metadata
     author="SumoLogic",
-    author_email="it@sumologic.com",
+    author_email="it@sumologic.com, apps-team@sumologic.com",
     description="Sumo Logic collection solution for slack",
     license="PSF",
     long_description=long_description,
