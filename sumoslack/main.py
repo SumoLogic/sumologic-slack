@@ -9,6 +9,7 @@ from concurrent import futures
 from slackclient import SlackClient
 from sumoappclient.common.utils import get_current_timestamp
 from sumoappclient.sumoclient.base import BaseCollector
+from sumoappclient.sumoclient.httputils import ClientMixin
 
 from api import UsersDataAPI, ChannelsMessagesAPI, AccessLogsAPI, AuditLogsAPI, ChannelsDataAPI
 
@@ -94,7 +95,11 @@ class SumoSlackCollector(BaseCollector):
                     self.kvstore.delete("AccessLogs")
 
             if "AUDIT_LOGS" in self.api_config['LOG_TYPES'] and "AUDIT_LOG_URL" in self.api_config:
-                shuffle_tasks.append(AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name))
+                self._get_audit_actions(self.api_config["AUDIT_LOG_URL"])
+                shuffle_tasks.append(
+                    AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name,
+                                 self.WorkspaceAuditActions, self.UserAuditActions, self.ChannelAuditActions,
+                                 self.FileAuditActions, self.AppAuditActions, self.OtherAuditActions))
 
         shuffle(shuffle_tasks)
         tasks.extend(shuffle_tasks)
@@ -110,6 +115,36 @@ class SumoSlackCollector(BaseCollector):
         else:
             self.log.info("Channels Data will not be fetched as 6 Data refresh time of 6 Hours not reached")
         return channels_data.get_state()
+
+    def _get_audit_actions(self, audit_url):
+        url = audit_url + "actions"
+        try:
+            sess = ClientMixin.get_new_session()
+            status, result = ClientMixin.make_request(url, method="get", session=sess, logger=self.log,
+                                                      TIMEOUT=self.collection_config['TIMEOUT'],
+                                                      MAX_RETRY=self.collection_config['MAX_RETRY'],
+                                                      BACKOFF_FACTOR=self.collection_config['BACKOFF_FACTOR'])
+            if status and result is not None:
+                if "actions" in result:
+                    actions = result["actions"]
+                    for actionName, values in actions.items():
+                        if "workspace_or_org" == actionName:
+                            self.WorkspaceAuditActions = values
+                        elif "user" == actionName:
+                            self.UserAuditActions = values
+                        elif "file" == actionName:
+                            self.ChannelAuditActions = values
+                        elif "channel" == actionName:
+                            self.FileAuditActions = values
+                        elif "app" == actionName:
+                            self.AppAuditActions = values
+                        else:
+                            if hasattr(self, "OtherAuditActions"):
+                                self.OtherAuditActions.extend(values)
+                            else:
+                                self.OtherAuditActions = values
+        except Exception as exc:
+            self.log.error("Error Occurred while fetching Audit Actions Error %s", exc)
 
     def run(self, *args, **kwargs):
         if self.is_running():

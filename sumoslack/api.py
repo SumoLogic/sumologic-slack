@@ -26,7 +26,7 @@ class SlackAPI(BaseAPI):
     def get_window(self, last_time_epoch):
         start_time_epoch = last_time_epoch + self.MOVING_WINDOW_DELTA
         end_time_epoch = get_current_timestamp() - self.collection_config['END_TIME_EPOCH_OFFSET_SECONDS']
-        if end_time_epoch < start_time_epoch:
+        while end_time_epoch < start_time_epoch:
             # initially last_time_epoch is same as current_time_stamp so endtime becomes lesser than starttime
             end_time_epoch = get_current_timestamp()
         return start_time_epoch, end_time_epoch
@@ -553,9 +553,18 @@ class AccessLogsAPI(FetchPaginatedDataBasedOnPageNumber):
 
 
 class AuditLogsAPI(FetchAuditData):
-    def __init__(self, kvstore, config, url, team_name):
+    def __init__(self, kvstore, config, url, team_name, workspaceauditactions, userauditactions, channelauditactions,
+                 fileauditactions, appauditactions, otherauditactions):
         super(AuditLogsAPI, self).__init__(kvstore, config, team_name)
-        self.url = url
+        self.url = url + "logs"
+        self.WorkspaceAuditActions = workspaceauditactions
+        self.UserAuditActions = userauditactions
+        self.ChannelAuditActions = channelauditactions
+        self.FileAuditActions = fileauditactions
+        self.AppAuditActions = appauditactions
+        self.OtherAuditActions = otherauditactions
+        if "ExcludeAuditLog" in self.api_config and self.api_config["ExcludeAuditLog"] is not None:
+            self.excludeList = self.api_config["ExcludeAuditLog"]
 
     def get_key(self):
         return "AuditLogs"
@@ -595,20 +604,23 @@ class AuditLogsAPI(FetchAuditData):
         }
 
     def transform_data(self, content):
+        data_to_be_sent = []
         if content is not None and "entries" in content:
             entries = content["entries"]
             for entry in entries:
                 action = entry["action"]
-                if action in self.api_config["WorkspaceAuditLog"]:
+                if action in self.WorkspaceAuditActions:
                     entry["logType"] = "WorkspaceAuditLog"
-                elif action in self.api_config["UserAuditLog"]:
+                elif action in self.UserAuditActions:
                     entry["logType"] = "UserAuditLog"
-                elif action in self.api_config["ChannelAuditLog"]:
+                elif action in self.ChannelAuditActions:
                     entry["logType"] = "ChannelAuditLog"
-                elif action in self.api_config["FileAuditLog"]:
+                elif action in self.FileAuditActions:
                     entry["logType"] = "FileAuditLog"
-                elif action in self.api_config["AppAuditLog"]:
+                elif action in self.AppAuditActions:
                     entry["logType"] = "AppAuditLog"
+                elif action in self.OtherAuditActions:
+                    entry["logType"] = "OtherAuditLogs"
 
                 # flat the entity level hierarchy
                 if "entity" in entry and "type" in entry["entity"]:
@@ -618,5 +630,8 @@ class AuditLogsAPI(FetchAuditData):
                         data = entity[entity_type]
                         entry["entity"] = data
 
-            return entries
-        return []
+                if action in self.excludeList:
+                    self.log.debug("Audit Log Entry Skipped for Action - " + action)
+                else:
+                    data_to_be_sent.append(entry)
+        return data_to_be_sent

@@ -1,83 +1,14 @@
 Slack:
  TOKEN: null
- AUDIT_LOG_URL: https://api.slack.com/audit/v1/logs
+ AUDIT_LOG_URL: https://api.slack.com/audit/v1/
  LOG_TYPES:
   - USER_LOGS
   - ACCESS_LOGS
   - CHANNELS_LOGS
   - CHANNELS_MESSAGES_LOGS
   - AUDIT_LOGS
-# Below are different types of audit logs that can be sent. Remove if not required
- WorkspaceAuditLog:
-  - workspace_created
-  - workspace_deleted
-  - workspace_accepted_migration
-  - workspace_declined_migration
-  - migration_scheduled
-  - organization_created
-  - organization_deleted
-  - organization_accepted_migration
-  - organization_declined_migration
-  - pref.sso_setting_changed
-  - pref.two_factor_auth_changed
-  - pref.public_channel_retention_changed
-  - pref.private_channel_retention_changed
-  - pref.dm_retention_changed
-  - pref.file_retention_changed
-  - pref.retention_override_changed
-  - billing_address_added
-  - emoji_added
-  - emoji_removed
-  - emoji_aliased
-  - emoji_renamed
-  - manual_export_started
-  - manual_export_completed
-  - corporate_exports_approved
-  - corporate_exports_enabled
-  - scheduled_export_started
-  - scheduled_export_completed
- UserAuditLog:
-  - role_change_to_owner
-  - role_change_to_admin
-  - role_change_to_user
-  - role_change_to_guest
-  - owner_transferred
-  - user_created
-  - user_deactivated
-  - user_reactivated
-  - guest_created
-  - guest_deactivated
-  - guest_reactivated
-  - guest_expiration_set
-  - guest_expired
-  - guest_expiration_cleared
-  - user_login
-  - user_logout
-  - custom_tos_accepted
- ChannelAuditLog:
-  - user_channel_join
-  - user_channel_leave
-  - guest_channel_join
-  - guest_channel_leave
-  - public_channel_created
-  - private_channel_created
-  - public_channel_archive
-  - private_channel_archive
-  - public_channel_unarchive
-  - private_channel_unarchive
-  - public_channel_deleted
-  - private_channel_deleted
- AppAuditLog:
-  - app_approved
-  - app_installed
-  - app_scopes_expanded
-  - app_resources_added
- FileAuditLog:
-  - file_downloaded
-  - file_uploaded
-  - file_public_link_created
-  - file_public_link_revoked
-  - file_shared
+ ExcludeAuditLog:
+  - None
 
 Logging:
  LOG_FORMAT: "%(levelname)s | %(asctime)s | %(threadName)s | %(name)s | %(message)s"
@@ -99,7 +30,7 @@ Collection:
  COMPRESSED: true
  MAX_PAYLOAD_BYTESIZE: 500000
  END_TIME_EPOCH_OFFSET_SECONDS: 120
- BACKFILL_DAYS: 0
+ BACKFILL_DAYS: null
  DBNAME: "sumoslack"
  DB_DIR: "~/sumo/"
 
