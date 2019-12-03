@@ -12,13 +12,12 @@ Metadata:
     Labels:
     - lambda
     - sumologic
-    - atlas
     - serverless
     - Slack
     LicenseUrl: ./LICENSE
     Name: sumologic-slack
     ReadmeUrl: ./README.md
-    SemanticVersion: 1.0.0
+    SemanticVersion: 1.0.2
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -54,13 +53,15 @@ Resources:
       Events:
         ScheduleRule:
           Properties:
-            Schedule: rate(5 minutes)
+            Schedule: rate(10 minutes)
           Type: Schedule
       Handler: main.main
+      Layers:
+      - Fn::Sub: arn:aws:lambda:${AWS::Region}:956882708938:layer:Slack-deps:5
       MemorySize: 256
       Policies:
       - AmazonDynamoDBFullAccess
       Runtime: python3.7
-      Timeout: 300
+      Timeout: 900
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31
