@@ -93,7 +93,7 @@ class SumoSlackCollector(BaseCollector):
                     tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
 
                 self.kvstore.set("Access_logs_page_index", next_page)
-                if self.kvstore.get("Access_logs_call_time") is None:
+                if page == 1:
                     self.kvstore.set("Access_logs_call_time", get_current_timestamp())
 
                 if next_page == self.MAX_PAGE:
