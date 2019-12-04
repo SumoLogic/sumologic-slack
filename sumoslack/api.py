@@ -360,27 +360,37 @@ class UsersDataAPI(FetchCursorBasedData):
 class ChannelsDataAPI(FetchCursorBasedData):
     DATA_REFRESH_TIME = 6 * 60 * 60
 
-    def __init__(self, kvstore, config, team_name):
+    def __init__(self, kvstore, config, team_name, channelnumber):
         super(ChannelsDataAPI, self).__init__(kvstore, config, team_name)
+        self.channelNumber = channelnumber
 
     def get_key(self):
-        return "Channels"
+        return "Channels_"
 
+    # Saving state as per the channels calls for limit of 50. Keys will be like Channels_1, Channels_2, Channels_3 ....
+    # Done to solve issue "Item size has exceeded the maximum allowed size"
     def save_state(self, cursor, data):
         channel_ids = []
-        current_state = self.get_state()
-        if current_state is not None and "ids" in current_state:
-            channel_ids = current_state["ids"]
 
         if data is not None:
             for channel in data:
                 channel_ids.append(channel["channel_id"] + "#" + channel["channel_name"])
 
-        obj = {"ids": channel_ids, "last_fetched": get_current_timestamp(), "cursor": cursor}
-        self.kvstore.set(self.get_key(), obj)
+        # Set the channels page number count after dividing channels into group of 50.
+        if self.kvstore.get("Channels_Page_Number") is None:
+            number = 1
+        else:
+            number = self.kvstore.get("Channels_Page_Number") + 1
+
+        ids = self.batchsize_chunking(channel_ids, 50)
+        for channels in ids:
+            obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
+            self.kvstore.set(self.get_key() + str(number), obj)
+            self.kvstore.set("Channels_Page_Number", number)
+            number = number + 1
 
     def get_state(self):
-        key = self.get_key()
+        key = self.get_key() + str(self.channelNumber)
         if not self.kvstore.has_key(key):
             return None
         obj = self.kvstore.get(key)
@@ -388,6 +398,7 @@ class ChannelsDataAPI(FetchCursorBasedData):
 
     def build_fetch_params(self):
         cursor = None
+        self.channelNumber = self.kvstore.get("Channels_Page_Number")
         obj = self.get_state()
         if obj is not None and "cursor" in obj:
             cursor = obj["cursor"]
@@ -409,6 +420,12 @@ class ChannelsDataAPI(FetchCursorBasedData):
                          "members": channel["num_members"],
                          "logType": "ChannelDetail", "teamName": self.team_name})
         return channel_details
+
+    def batchsize_chunking(cls, iterable, size=1):
+        l = len(iterable)
+        for idx in range(0, l, size):
+            data = iterable[idx:min(idx + size, l)]
+            yield data
 
 
 class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
