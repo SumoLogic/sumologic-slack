@@ -24,7 +24,8 @@ class SumoSlackCollector(BaseCollector):
     CONFIG_FILENAME = "slackcollector.yaml"
     CHANNEL_COUNTER = 50
     MAX_PAGE = 101
-    PAGE_COUNTER = 15
+    PAGE_COUNTER = 2
+    DATA_REFRESH_TIME = 24 * 60 * 60
 
     def __init__(self):
         self.project_dir = get_current_dir()
@@ -78,13 +79,23 @@ class SumoSlackCollector(BaseCollector):
 
                     self.kvstore.set("channel_id_index", next_counter)
 
-            if "ACCESS_LOGS" in self.api_config['LOG_TYPES']:
+            call_access_logs = True
+
+            if self.kvstore.get("Access_logs_page_index") == 1 \
+                    and get_current_timestamp() - self.kvstore.get("Access_logs_call_time") < self.DATA_REFRESH_TIME:
+                self.log.info("All Data for access logs has been sent. New Data will be sent after every 24 Hours.")
+                call_access_logs = False
+
+            if "ACCESS_LOGS" in self.api_config['LOG_TYPES'] and call_access_logs:
                 page = self.kvstore.get("Access_logs_page_index", 1)
                 next_page = min(self.MAX_PAGE, page + self.PAGE_COUNTER)
                 for page_number in range(page, next_page):
-                    shuffle_tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
+                    tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
 
                 self.kvstore.set("Access_logs_page_index", next_page)
+                if self.kvstore.get("Access_logs_call_time") is None:
+                    self.kvstore.set("Access_logs_call_time", get_current_timestamp())
+
                 if next_page == self.MAX_PAGE:
                     self.kvstore.set("Access_logs_page_index", 1)
                     self.kvstore.delete("AccessLogs")
