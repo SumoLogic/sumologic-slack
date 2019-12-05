@@ -619,17 +619,17 @@ class AuditLogsAPI(FetchAuditData):
             entries = content["entries"]
             for entry in entries:
                 action = entry["action"]
-                if action in self.WorkspaceAuditActions:
+                if hasattr(self, "WorkspaceAuditActions") and action in self.WorkspaceAuditActions:
                     entry["logType"] = "WorkspaceAuditLog"
-                elif action in self.UserAuditActions:
+                elif hasattr(self, "UserAuditActions") and action in self.UserAuditActions:
                     entry["logType"] = "UserAuditLog"
-                elif action in self.ChannelAuditActions:
+                elif hasattr(self, "ChannelAuditActions") and action in self.ChannelAuditActions:
                     entry["logType"] = "ChannelAuditLog"
-                elif action in self.FileAuditActions:
+                elif hasattr(self, "FileAuditActions") and action in self.FileAuditActions:
                     entry["logType"] = "FileAuditLog"
-                elif action in self.AppAuditActions:
+                elif hasattr(self, "AppAuditActions") and action in self.AppAuditActions:
                     entry["logType"] = "AppAuditLog"
-                elif action in self.OtherAuditActions:
+                elif hasattr(self, "OtherAuditActions") and action in self.OtherAuditActions:
                     entry["logType"] = "OtherAuditLogs"
 
                 # flat the entity level hierarchy
@@ -640,7 +640,7 @@ class AuditLogsAPI(FetchAuditData):
                         data = entity[entity_type]
                         entry["entity"] = data
 
-                if action in self.excludeList:
+                if hasattr(self, "excludeList") and action in self.excludeList:
                     self.log.debug("Audit Log Entry Skipped for Action - " + action)
                 else:
                     data_to_be_sent.append(entry)
