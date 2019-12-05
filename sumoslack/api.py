@@ -26,7 +26,7 @@ class SlackAPI(BaseAPI):
     def get_window(self, last_time_epoch):
         start_time_epoch = last_time_epoch + self.MOVING_WINDOW_DELTA
         end_time_epoch = get_current_timestamp() - self.collection_config['END_TIME_EPOCH_OFFSET_SECONDS']
-        if end_time_epoch < start_time_epoch:
+        while end_time_epoch < start_time_epoch:
             # initially last_time_epoch is same as current_time_stamp so endtime becomes lesser than starttime
             end_time_epoch = get_current_timestamp()
         return start_time_epoch, end_time_epoch
@@ -360,27 +360,37 @@ class UsersDataAPI(FetchCursorBasedData):
 class ChannelsDataAPI(FetchCursorBasedData):
     DATA_REFRESH_TIME = 6 * 60 * 60
 
-    def __init__(self, kvstore, config, team_name):
+    def __init__(self, kvstore, config, team_name, channelnumber):
         super(ChannelsDataAPI, self).__init__(kvstore, config, team_name)
+        self.channelNumber = channelnumber
 
     def get_key(self):
-        return "Channels"
+        return "Channels_"
 
+    # Saving state as per the channels calls for limit of 50. Keys will be like Channels_1, Channels_2, Channels_3 ....
+    # Done to solve issue "Item size has exceeded the maximum allowed size"
     def save_state(self, cursor, data):
         channel_ids = []
-        current_state = self.get_state()
-        if current_state is not None and "ids" in current_state:
-            channel_ids = current_state["ids"]
 
         if data is not None:
             for channel in data:
                 channel_ids.append(channel["channel_id"] + "#" + channel["channel_name"])
 
-        obj = {"ids": channel_ids, "last_fetched": get_current_timestamp(), "cursor": cursor}
-        self.kvstore.set(self.get_key(), obj)
+        # Set the channels page number count after dividing channels into group of 50.
+        if self.kvstore.get("Channels_Page_Number") is None:
+            number = 1
+        else:
+            number = self.kvstore.get("Channels_Page_Number") + 1
+
+        ids = self.batchsize_chunking(channel_ids, 50)
+        for channels in ids:
+            obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
+            self.kvstore.set(self.get_key() + str(number), obj)
+            self.kvstore.set("Channels_Page_Number", number)
+            number = number + 1
 
     def get_state(self):
-        key = self.get_key()
+        key = self.get_key() + str(self.channelNumber)
         if not self.kvstore.has_key(key):
             return None
         obj = self.kvstore.get(key)
@@ -388,6 +398,7 @@ class ChannelsDataAPI(FetchCursorBasedData):
 
     def build_fetch_params(self):
         cursor = None
+        self.channelNumber = self.kvstore.get("Channels_Page_Number")
         obj = self.get_state()
         if obj is not None and "cursor" in obj:
             cursor = obj["cursor"]
@@ -409,6 +420,12 @@ class ChannelsDataAPI(FetchCursorBasedData):
                          "members": channel["num_members"],
                          "logType": "ChannelDetail", "teamName": self.team_name})
         return channel_details
+
+    def batchsize_chunking(cls, iterable, size=1):
+        l = len(iterable)
+        for idx in range(0, l, size):
+            data = iterable[idx:min(idx + size, l)]
+            yield data
 
 
 class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
@@ -539,23 +556,25 @@ class AccessLogsAPI(FetchPaginatedDataBasedOnPageNumber):
         if content is not None and "logins" in content:
             logs = content["logins"]
             for log in logs:
-                hash_data = str(hash(log["user_id"] + log["ip"] + log["user_agent"]))
-                count = 0
-                if self.kvstore.has_key(hash_data):
-                    count = self.kvstore.get(hash_data)
-
-                if count == 0 or count != log["count"]:
-                    log["teamName"] = self.team_name
-                    log["logType"] = "AccessLog"
-                    data.append(log)
-                    self.kvstore.set(hash_data, log["count"])
+                log["teamName"] = self.team_name
+                log["logType"] = "AccessLog"
+                data.append(log)
         return data
 
 
 class AuditLogsAPI(FetchAuditData):
-    def __init__(self, kvstore, config, url, team_name):
+    def __init__(self, kvstore, config, url, team_name, workspaceauditactions, userauditactions, channelauditactions,
+                 fileauditactions, appauditactions, otherauditactions):
         super(AuditLogsAPI, self).__init__(kvstore, config, team_name)
-        self.url = url
+        self.url = url + "logs"
+        self.WorkspaceAuditActions = workspaceauditactions
+        self.UserAuditActions = userauditactions
+        self.ChannelAuditActions = channelauditactions
+        self.FileAuditActions = fileauditactions
+        self.AppAuditActions = appauditactions
+        self.OtherAuditActions = otherauditactions
+        if "ExcludeAuditLog" in self.api_config and self.api_config["ExcludeAuditLog"] is not None:
+            self.excludeList = self.api_config["ExcludeAuditLog"]
 
     def get_key(self):
         return "AuditLogs"
@@ -595,20 +614,23 @@ class AuditLogsAPI(FetchAuditData):
         }
 
     def transform_data(self, content):
+        data_to_be_sent = []
         if content is not None and "entries" in content:
             entries = content["entries"]
             for entry in entries:
                 action = entry["action"]
-                if action in self.api_config["WorkspaceAuditLog"]:
+                if hasattr(self, "WorkspaceAuditActions") and action in self.WorkspaceAuditActions:
                     entry["logType"] = "WorkspaceAuditLog"
-                elif action in self.api_config["UserAuditLog"]:
+                elif hasattr(self, "UserAuditActions") and action in self.UserAuditActions:
                     entry["logType"] = "UserAuditLog"
-                elif action in self.api_config["ChannelAuditLog"]:
+                elif hasattr(self, "ChannelAuditActions") and action in self.ChannelAuditActions:
                     entry["logType"] = "ChannelAuditLog"
-                elif action in self.api_config["FileAuditLog"]:
+                elif hasattr(self, "FileAuditActions") and action in self.FileAuditActions:
                     entry["logType"] = "FileAuditLog"
-                elif action in self.api_config["AppAuditLog"]:
+                elif hasattr(self, "AppAuditActions") and action in self.AppAuditActions:
                     entry["logType"] = "AppAuditLog"
+                elif hasattr(self, "OtherAuditActions") and action in self.OtherAuditActions:
+                    entry["logType"] = "OtherAuditLogs"
 
                 # flat the entity level hierarchy
                 if "entity" in entry and "type" in entry["entity"]:
@@ -618,5 +640,8 @@ class AuditLogsAPI(FetchAuditData):
                         data = entity[entity_type]
                         entry["entity"] = data
 
-            return entries
-        return []
+                if hasattr(self, "excludeList") and action in self.excludeList:
+                    self.log.debug("Audit Log Entry Skipped for Action - " + action)
+                else:
+                    data_to_be_sent.append(entry)
+        return data_to_be_sent

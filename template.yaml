@@ -17,7 +17,7 @@ Metadata:
     LicenseUrl: ./LICENSE
     Name: sumologic-slack
     ReadmeUrl: ./README.md
-    SemanticVersion: 1.0.1
+    SemanticVersion: 1.0.4
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -28,6 +28,8 @@ Outputs:
       - SlackFunction
       - Arn
 Parameters:
+  BackfillDays:
+    Type: String
   HttpLogsEndpoint:
     Type: String
   Token:
@@ -36,8 +38,13 @@ Resources:
   SlackFunction:
     Properties:
       CodeUri: ./target/aws/build/
+      Description: This function gets triggered perodically via CloudWatchEvents and
+        fetches logs from Slack and ingest to SumoLogic
       Environment:
         Variables:
+          BACKFILL_DAYS:
+            Ref: BackfillDays
+          ENABLE_CONSOLE_LOG: 'false'
           ENVIRONMENT: aws
           HTTP_LOGS_ENDPOINT:
             Ref: HttpLogsEndpoint

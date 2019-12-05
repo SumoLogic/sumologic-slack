@@ -34,6 +34,9 @@ This collector can be deployed both onprem and on cloud.
             Slack:
                 TOKEN: <Paste the URL for the SLACK API TOKEN from step 1.>
                 
+            Collection:
+                BACKFILL_DAYS: <Enter the Number of days before the event collection will start.>
+ 
             SumoLogic:
                 HTTP_LOGS_ENDPOINT: <Paste the URL for the HTTP Logs source from step 2.>
             ```
@@ -55,6 +58,7 @@ This collector can be deployed both onprem and on cloud.
             ```
             Token: Paste the URL for the SLACK API TOKEN from step 1.
             HttpLogsEndpoint: Paste the URL for the HTTP Logs source from step 2.
+            BackfillDays: Enter the Number of days before the event collection will start
             ```
         * Click Deploy.
 

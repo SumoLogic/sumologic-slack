@@ -9,6 +9,7 @@ from concurrent import futures
 from slackclient import SlackClient
 from sumoappclient.common.utils import get_current_timestamp
 from sumoappclient.sumoclient.base import BaseCollector
+from sumoappclient.sumoclient.httputils import ClientMixin
 
 from api import UsersDataAPI, ChannelsMessagesAPI, AccessLogsAPI, AuditLogsAPI, ChannelsDataAPI
 
@@ -23,7 +24,8 @@ class SumoSlackCollector(BaseCollector):
     CONFIG_FILENAME = "slackcollector.yaml"
     CHANNEL_COUNTER = 50
     MAX_PAGE = 101
-    PAGE_COUNTER = 15
+    PAGE_COUNTER = 2
+    DATA_REFRESH_TIME = 24 * 60 * 60
 
     def __init__(self):
         self.project_dir = get_current_dir()
@@ -61,55 +63,97 @@ class SumoSlackCollector(BaseCollector):
             if "USER_LOGS" in self.api_config['LOG_TYPES']:
                 tasks.append(UsersDataAPI(self.kvstore, self.config, self.team_name))
 
-            channels = self._get_channel_ids()
+            next_counter = self.kvstore.get("channel_id_index", 0) + 1
+            channels = self._get_channel_ids(next_counter)
 
             if "CHANNELS_MESSAGES_LOGS" in self.api_config['LOG_TYPES']:
                 # fetch the state again to check if the channels ID are changed
 
                 if channels is not None and "ids" in channels:
                     channels_ids = channels["ids"]
-                    counter = self.kvstore.get("channel_id_index", 0)
-                    next_counter = counter + self.CHANNEL_COUNTER
-                    channel_batch = channels_ids[counter: next_counter]
 
-                    for channels_id in channel_batch:
+                    for channels_id in channels_ids:
                         channel = channels_id.split("#")
                         shuffle_tasks.append(
                             ChannelsMessagesAPI(self.kvstore, self.config, channel[0], channel[1], self.team_name))
 
                     self.kvstore.set("channel_id_index", next_counter)
-                    if len(channels_ids) <= next_counter:
-                        self.log.debug("Resetting the channel counter")
-                        self.kvstore.set("channel_id_index", 0)
 
-            if "ACCESS_LOGS" in self.api_config['LOG_TYPES']:
+            call_access_logs = True
+
+            if self.kvstore.get("Access_logs_page_index") == 1 \
+                    and get_current_timestamp() - self.kvstore.get("Access_logs_call_time") < self.DATA_REFRESH_TIME:
+                self.log.info("All Data for access logs has been sent. New Data will be sent after every 24 Hours.")
+                call_access_logs = False
+
+            if "ACCESS_LOGS" in self.api_config['LOG_TYPES'] and call_access_logs:
                 page = self.kvstore.get("Access_logs_page_index", 1)
                 next_page = min(self.MAX_PAGE, page + self.PAGE_COUNTER)
                 for page_number in range(page, next_page):
-                    shuffle_tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
+                    tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
 
                 self.kvstore.set("Access_logs_page_index", next_page)
+                if page == 1:
+                    self.kvstore.set("Access_logs_call_time", get_current_timestamp())
+
                 if next_page == self.MAX_PAGE:
                     self.kvstore.set("Access_logs_page_index", 1)
                     self.kvstore.delete("AccessLogs")
 
             if "AUDIT_LOGS" in self.api_config['LOG_TYPES'] and "AUDIT_LOG_URL" in self.api_config:
-                shuffle_tasks.append(AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name))
+                self._get_audit_actions(self.api_config["AUDIT_LOG_URL"])
+                shuffle_tasks.append(
+                    AuditLogsAPI(self.kvstore, self.config, self.api_config["AUDIT_LOG_URL"], self.team_name,
+                                 self.WorkspaceAuditActions, self.UserAuditActions, self.ChannelAuditActions,
+                                 self.FileAuditActions, self.AppAuditActions, self.OtherAuditActions))
 
         shuffle(shuffle_tasks)
         tasks.extend(shuffle_tasks)
         return tasks
 
-    def _get_channel_ids(self):
-        channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name)
+    def _get_channel_ids(self, counter):
+        channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name, counter)
         obj = channels_data.get_state()
-        if obj is None or ("ids" in obj and len(obj["ids"]) <= 0) or ("last_fetched" in obj and not (
-                get_current_timestamp() - obj["last_fetched"] < channels_data.DATA_REFRESH_TIME)):
+        if obj is None or ("ids" in obj and len(obj["ids"]) <= 0
+                           or (counter > self.kvstore.get("Channels_Page_Number"))):
             if "CHANNELS_LOGS" in self.api_config['LOG_TYPES']:
+                self.kvstore.delete("Channels_Page_Number")
                 channels_data.fetch()
+                self.kvstore.delete("channel_id_index")
+                return None
         else:
-            self.log.info("Channels Data will not be fetched as 6 Data refresh time of 6 Hours not reached")
-        return channels_data.get_state()
+            self.log.info("Channels Data will not be fetched as all channels message data is not sent.")
+        return obj
+
+    def _get_audit_actions(self, audit_url):
+        url = audit_url + "actions"
+        try:
+            sess = ClientMixin.get_new_session()
+            status, result = ClientMixin.make_request(url, method="get", session=sess, logger=self.log,
+                                                      TIMEOUT=self.collection_config['TIMEOUT'],
+                                                      MAX_RETRY=self.collection_config['MAX_RETRY'],
+                                                      BACKOFF_FACTOR=self.collection_config['BACKOFF_FACTOR'])
+            if status and result is not None:
+                if "actions" in result:
+                    actions = result["actions"]
+                    for actionName, values in actions.items():
+                        if "workspace_or_org" == actionName:
+                            self.WorkspaceAuditActions = values
+                        elif "user" == actionName:
+                            self.UserAuditActions = values
+                        elif "file" == actionName:
+                            self.ChannelAuditActions = values
+                        elif "channel" == actionName:
+                            self.FileAuditActions = values
+                        elif "app" == actionName:
+                            self.AppAuditActions = values
+                        else:
+                            if hasattr(self, "OtherAuditActions"):
+                                self.OtherAuditActions.extend(values)
+                            else:
+                                self.OtherAuditActions = values
+        except Exception as exc:
+            self.log.error("Error Occurred while fetching Audit Actions Error %s", exc)
 
     def run(self, *args, **kwargs):
         if self.is_running():
