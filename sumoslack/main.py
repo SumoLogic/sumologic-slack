@@ -154,6 +154,8 @@ class SumoSlackCollector(BaseCollector):
                                 self.OtherAuditActions = values
         except Exception as exc:
             self.log.error("Error Occurred while fetching Audit Actions Error %s", exc)
+        finally:
+            sess.close()
 
     def run(self, *args, **kwargs):
         if self.is_running():

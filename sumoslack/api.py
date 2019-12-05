@@ -268,6 +268,7 @@ class FetchAuditData(FetchCursorBasedData):
                            exc)
         finally:
             output_handler.close()
+            sess.close()
         self.log.info("Completed LogType %s, Pages: %s, Records %s", log_type, page_counter,
                       record_counter)
 
