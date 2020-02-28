@@ -22,10 +22,8 @@ def get_current_dir():
 class SumoSlackCollector(BaseCollector):
     SINGLE_PROCESS_LOCK_KEY = 'is_slack_collector_running'
     CONFIG_FILENAME = "slackcollector.yaml"
-    CHANNEL_COUNTER = 50
     MAX_PAGE = 101
     PAGE_COUNTER = 2
-    DATA_REFRESH_TIME = 24 * 60 * 60
 
     def __init__(self):
         self.project_dir = get_current_dir()
@@ -38,6 +36,14 @@ class SumoSlackCollector(BaseCollector):
 
         # Populate Team Name in Key Value Pair
         self.team_name = self._set_team_name()
+
+        # Set Data refresh time for access logs, user logs
+        self.access_logs_data_refresh_time = self.config['Slack']['ACCESS_LOGS_REFRESH_TIME_IN_HOURS'] * 60 * 60
+        self.user_logs_data_refresh_time = self.config['Slack']['USER_LOGS_REFRESH_TIME_IN_HOURS'] * 60 * 60
+        self.infrequent_channel_messages_fetch_time = self.config['Slack']['INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS'] * 60 * 60
+
+        # Set threshold for infrequent and frequent channels
+        self.infrequent_channel_threshold = self.config['Slack']['INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS'] * 60 * 60
 
     def _set_team_name(self):
         data = self.slackClient.api_call("team.info", self.collection_config['TIMEOUT'])
@@ -60,30 +66,45 @@ class SumoSlackCollector(BaseCollector):
         tasks = []
         shuffle_tasks = []
         if 'LOG_TYPES' in self.api_config:
+            # ************** USER LOGS PROCESS **************
             if "USER_LOGS" in self.api_config['LOG_TYPES']:
-                tasks.append(UsersDataAPI(self.kvstore, self.config, self.team_name))
+                tasks.append(UsersDataAPI(self.kvstore, self.config, self.team_name, self.user_logs_data_refresh_time))
 
-            next_counter = self.kvstore.get("channel_id_index", 0) + 1
-            channels = self._get_channel_ids(next_counter)
+            # ************** CHANNEL LOGS PROCESS **************
+
+            # Get frequent and infrequent channel list. Call infrequent channels based on last call time.
+            call_in_frequent_channels = True
+            # check if infrequent channels need to be called
+            if self.kvstore.get("in_frequent_channel_page_current_index") is None \
+                    and get_current_timestamp() - self.kvstore.get("in_frequent_channel_last_call_time") \
+                    < self.infrequent_channel_messages_fetch_time:
+                self.log.info("All Messages for Infrequent channels has been sent. "
+                              "New Data will be sent after refresh time.")
+                call_in_frequent_channels = False
+
+            if call_in_frequent_channels:
+                channels = self._get_channel_ids("in_frequent_")
+                if self.kvstore.get("in_frequent_channel_page_current_index") == 1:
+                    self.kvstore.set("in_frequent_channel_last_call_time", get_current_timestamp())
+            else:
+                channels = self._get_channel_ids("frequent_")
 
             if "CHANNELS_MESSAGES_LOGS" in self.api_config['LOG_TYPES']:
-                # fetch the state again to check if the channels ID are changed
-
+                # Append all channels to shuffle tasks
                 if channels is not None and "ids" in channels:
                     channels_ids = channels["ids"]
-
                     for channels_id in channels_ids:
                         channel = channels_id.split("#")
                         shuffle_tasks.append(
                             ChannelsMessagesAPI(self.kvstore, self.config, channel[0], channel[1], self.team_name))
 
-                    self.kvstore.set("channel_id_index", next_counter)
-
+            # ************** ACCESS LOGS PROCESS **************
             call_access_logs = True
 
             if self.kvstore.get("Access_logs_page_index") == 1 \
-                    and get_current_timestamp() - self.kvstore.get("Access_logs_call_time") < self.DATA_REFRESH_TIME:
-                self.log.info("All Data for access logs has been sent. New Data will be sent after every 24 Hours.")
+                    and get_current_timestamp() - self.kvstore.get("Access_logs_call_time") \
+                    < self.access_logs_data_refresh_time:
+                self.log.info("All Data for access logs has been sent. New Data will be sent after refresh time.")
                 call_access_logs = False
 
             if "ACCESS_LOGS" in self.api_config['LOG_TYPES'] and call_access_logs:
@@ -100,6 +121,7 @@ class SumoSlackCollector(BaseCollector):
                     self.kvstore.set("Access_logs_page_index", 1)
                     self.kvstore.delete("AccessLogs")
 
+            # ************** AUDIT LOGS PROCESS **************
             if "AUDIT_LOGS" in self.api_config['LOG_TYPES'] and "AUDIT_LOG_URL" in self.api_config:
                 self._get_audit_actions(self.api_config["AUDIT_LOG_URL"])
                 shuffle_tasks.append(
@@ -111,18 +133,22 @@ class SumoSlackCollector(BaseCollector):
         tasks.extend(shuffle_tasks)
         return tasks
 
-    def _get_channel_ids(self, counter):
-        channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name, counter)
-        obj = channels_data.get_state()
-        if obj is None or ("ids" in obj and len(obj["ids"]) <= 0
-                           or (counter > self.kvstore.get("Channels_Page_Number"))):
+    def _get_channel_ids(self, key):
+        next_counter = self.kvstore.get(key + "channel_page_current_index", 0) + 1
+        channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name,
+                                        key + next_counter, self.infrequent_channel_threshold)
+
+        if next_counter > self.kvstore.get(key + "Channels_Page_Number"):
             if "CHANNELS_LOGS" in self.api_config['LOG_TYPES']:
-                self.kvstore.delete("Channels_Page_Number")
+                self.kvstore.delete(key + "Channels_Page_Number")
+                self.kvstore.delete(key + "channel_page_current_index")
                 channels_data.fetch()
-                self.kvstore.delete("channel_id_index")
-                return None
+            return None
         else:
             self.log.info("Channels Data will not be fetched as all channels message data is not sent.")
+
+        obj = channels_data.get_state()
+        self.kvstore.set(key + "channel_id_index", next_counter)
         return obj
 
     def _get_audit_actions(self, audit_url):

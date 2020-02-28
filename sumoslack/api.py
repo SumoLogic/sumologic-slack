@@ -274,10 +274,10 @@ class FetchAuditData(FetchCursorBasedData):
 
 
 class UsersDataAPI(FetchCursorBasedData):
-    DATA_REFRESH_TIME = 24 * 60 * 60
 
-    def __init__(self, kvstore, config, team_name):
+    def __init__(self, kvstore, config, team_name, data_refresh_time):
         super(UsersDataAPI, self).__init__(kvstore, config, team_name)
+        self.data_refresh_time = data_refresh_time
 
     def get_key(self):
         return "Users"
@@ -330,7 +330,7 @@ class UsersDataAPI(FetchCursorBasedData):
             last_sent = user["lastSent"]
 
         # Send user data every 24 hours and meanwhile if updated send it
-        if last_updated == user_data["updated"] and get_current_timestamp() - last_sent < self.DATA_REFRESH_TIME:
+        if last_updated == user_data["updated"] and get_current_timestamp() - last_sent < self.data_refresh_time:
             self.log.debug("user already present")
         else:
             transformed_user_data = {"id": user_data.get("id"), "name": user_data.get("name"),
@@ -359,11 +359,14 @@ class UsersDataAPI(FetchCursorBasedData):
 
 
 class ChannelsDataAPI(FetchCursorBasedData):
-    DATA_REFRESH_TIME = 6 * 60 * 60
+    frequent = "frequent_"
+    in_frequent = "in_frequent_"
 
-    def __init__(self, kvstore, config, team_name, channelnumber):
+    def __init__(self, kvstore, config, team_name, channel_page_number, infrequent_channel_threshold):
         super(ChannelsDataAPI, self).__init__(kvstore, config, team_name)
-        self.channelNumber = channelnumber
+        self.channel_page_number = channel_page_number
+        # the max difference between current timestamp and last oldest fetched timestamp to mark a channel as infrequent
+        self.infrequent_channel_threshold = infrequent_channel_threshold
 
     def get_key(self):
         return "Channels_"
@@ -371,27 +374,40 @@ class ChannelsDataAPI(FetchCursorBasedData):
     # Saving state as per the channels calls for limit of 50. Keys will be like Channels_1, Channels_2, Channels_3 ....
     # Done to solve issue "Item size has exceeded the maximum allowed size"
     def save_state(self, cursor, data):
-        channel_ids = []
+        # Get frequent channels current page
+        frequent_channel_page_number = self.kvstore.get("frequent_channel_page_number")
+        frequent_channel_page_number = 1 if frequent_channel_page_number is None else frequent_channel_page_number + 1
 
+        frequent_channels = self.kvstore.get(self.get_key() + self.frequent + frequent_channel_page_number)
+        frequent_channels = [] if frequent_channels is None else frequent_channels
+
+        # Get in-frequent channels current page
+        in_frequent_channel_page_number = self.kvstore.get("in_frequent_channel_page_number")
+        in_frequent_channel_page_number = 1 if in_frequent_channel_page_number is None \
+            else in_frequent_channel_page_number + 1
+
+        infrequent_channels = self.kvstore.get(self.get_key() + self.in_frequent + in_frequent_channel_page_number)
+        infrequent_channels = [] if infrequent_channels is None else infrequent_channels
+
+        # Update the frequent and infrequent list as per threshold provided by user
         if data is not None:
             for channel in data:
-                channel_ids.append(channel["channel_id"] + "#" + channel["channel_name"])
+                channel_id = channel["channel_id"]
+                channel_name = channel["channel_name"]
+                messages_details = self.kvstore.get(channel_id)
+                if messages_details is not None and "fetch_oldest" in messages_details \
+                        and get_current_timestamp() - messages_details.get("fetch_oldest") > \
+                        self.infrequent_channel_threshold:
+                    infrequent_channels.append(channel_id + "#" + channel_name)
+                else:
+                    frequent_channels.append(channel_id + "#" + channel_name)
 
-        # Set the channels page number count after dividing channels into group of 50.
-        if self.kvstore.get("Channels_Page_Number") is None:
-            number = 1
-        else:
-            number = self.kvstore.get("Channels_Page_Number") + 1
-
-        ids = self.batchsize_chunking(channel_ids, 50)
-        for channels in ids:
-            obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
-            self.kvstore.set(self.get_key() + str(number), obj)
-            self.kvstore.set("Channels_Page_Number", number)
-            number = number + 1
+        # segregate list into chunks of 50 and save them in database.
+        self.put_channels_data(frequent_channels, frequent_channel_page_number, self.frequent, cursor)
+        self.put_channels_data(infrequent_channels, in_frequent_channel_page_number, self.in_frequent, cursor)
 
     def get_state(self):
-        key = self.get_key() + str(self.channelNumber)
+        key = self.get_key() + str(self.channel_page_number)
         if not self.kvstore.has_key(key):
             return None
         obj = self.kvstore.get(key)
@@ -399,7 +415,7 @@ class ChannelsDataAPI(FetchCursorBasedData):
 
     def build_fetch_params(self):
         cursor = None
-        self.channelNumber = self.kvstore.get("Channels_Page_Number")
+        self.channel_page_number = self.frequent + self.kvstore.get("frequent_channel_page_number")
         obj = self.get_state()
         if obj is not None and "cursor" in obj:
             cursor = obj["cursor"]
@@ -421,6 +437,14 @@ class ChannelsDataAPI(FetchCursorBasedData):
                          "members": channel["num_members"],
                          "logType": "ChannelDetail", "teamName": self.team_name})
         return channel_details
+
+    def put_channels_data(self, channels, number, key, cursor):
+        ids = self.batchsize_chunking(channels, 50)
+        for channels in ids:
+            obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
+            self.kvstore.set(self.get_key() + key + number, obj)
+            self.kvstore.set(key + "channel_page_number", number)
+            number = number + 1
 
     def batchsize_chunking(cls, iterable, size=1):
         l = len(iterable)
