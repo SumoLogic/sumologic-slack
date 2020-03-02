@@ -497,7 +497,7 @@ class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
             if "last_record_fetched_timestamp" in state and state["last_record_fetched_timestamp"] is not None:
                 latest = state["last_record_fetched_timestamp"]
 
-        return "channels.history", {"channel": self.get_key(), "inclusive": True, "latest": latest,
+        return "conversations.history", {"channel": self.get_key(), "inclusive": True, "latest": latest,
                                     "oldest": oldest}
 
     def build_send_params(self):
