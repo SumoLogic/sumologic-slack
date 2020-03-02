@@ -376,18 +376,20 @@ class ChannelsDataAPI(FetchCursorBasedData):
     def save_state(self, cursor, data):
         # Get frequent channels current page
         frequent_channel_page_number = self.kvstore.get("frequent_channel_page_number")
-        frequent_channel_page_number = 1 if frequent_channel_page_number is None else frequent_channel_page_number + 1
+        frequent_channel_page_number = 1 if frequent_channel_page_number is None else frequent_channel_page_number
 
-        frequent_channels = self.kvstore.get(self.get_key() + self.frequent + frequent_channel_page_number)
-        frequent_channels = [] if frequent_channels is None else frequent_channels
+        frequent_channels = self.kvstore.get(self.get_key() + self.frequent + str(frequent_channel_page_number))
+        frequent_channels = [] if frequent_channels is None or frequent_channels["ids"] is None \
+            else frequent_channels["ids"]
 
         # Get in-frequent channels current page
         in_frequent_channel_page_number = self.kvstore.get("in_frequent_channel_page_number")
         in_frequent_channel_page_number = 1 if in_frequent_channel_page_number is None \
-            else in_frequent_channel_page_number + 1
+            else in_frequent_channel_page_number
 
-        infrequent_channels = self.kvstore.get(self.get_key() + self.in_frequent + in_frequent_channel_page_number)
-        infrequent_channels = [] if infrequent_channels is None else infrequent_channels
+        infrequent_channels = self.kvstore.get(self.get_key() + self.in_frequent + str(in_frequent_channel_page_number))
+        infrequent_channels = [] if infrequent_channels is None or infrequent_channels["ids"] is None \
+            else infrequent_channels["ids"]
 
         # Update the frequent and infrequent list as per threshold provided by user
         if data is not None:
@@ -415,7 +417,7 @@ class ChannelsDataAPI(FetchCursorBasedData):
 
     def build_fetch_params(self):
         cursor = None
-        self.channel_page_number = self.frequent + self.kvstore.get("frequent_channel_page_number")
+        self.channel_page_number = self.frequent + str(self.kvstore.get("frequent_channel_page_number"))
         obj = self.get_state()
         if obj is not None and "cursor" in obj:
             cursor = obj["cursor"]
@@ -442,7 +444,7 @@ class ChannelsDataAPI(FetchCursorBasedData):
         ids = self.batchsize_chunking(channels, 50)
         for channels in ids:
             obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
-            self.kvstore.set(self.get_key() + key + number, obj)
+            self.kvstore.set(self.get_key() + key + str(number), obj)
             self.kvstore.set(key + "channel_page_number", number)
             number = number + 1
 

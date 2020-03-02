@@ -40,7 +40,8 @@ class SumoSlackCollector(BaseCollector):
         # Set Data refresh time for access logs, user logs
         self.access_logs_data_refresh_time = self.config['Slack']['ACCESS_LOGS_REFRESH_TIME_IN_HOURS'] * 60 * 60
         self.user_logs_data_refresh_time = self.config['Slack']['USER_LOGS_REFRESH_TIME_IN_HOURS'] * 60 * 60
-        self.infrequent_channel_messages_fetch_time = self.config['Slack']['INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS'] * 60 * 60
+        self.infrequent_channel_messages_fetch_time = self.config['Slack'][
+                                                          'INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS'] * 60 * 60
 
         # Set threshold for infrequent and frequent channels
         self.infrequent_channel_threshold = self.config['Slack']['INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS'] * 60 * 60
@@ -73,18 +74,17 @@ class SumoSlackCollector(BaseCollector):
             # ************** CHANNEL LOGS PROCESS **************
 
             # Get frequent and infrequent channel list. Call infrequent channels based on last call time.
-            call_in_frequent_channels = True
+            call_in_frequent_channels = False
             # check if infrequent channels need to be called
-            if self.kvstore.get("in_frequent_channel_page_current_index") is None \
-                    and get_current_timestamp() - self.kvstore.get("in_frequent_channel_last_call_time") \
-                    < self.infrequent_channel_messages_fetch_time:
-                self.log.info("All Messages for Infrequent channels has been sent. "
-                              "New Data will be sent after refresh time.")
-                call_in_frequent_channels = False
+            if get_current_timestamp() - self.kvstore.get("in_frequent_channel_last_call_time", 0) \
+                    > self.infrequent_channel_messages_fetch_time:
+                self.log.info("Infrequent channels will be sent")
+                call_in_frequent_channels = True
 
             if call_in_frequent_channels:
                 channels = self._get_channel_ids("in_frequent_")
-                if self.kvstore.get("in_frequent_channel_page_current_index") == 1:
+                if self.kvstore.get("in_frequent_channel_page_current_index") \
+                        == self.kvstore.get("in_frequent_channel_page_number"):
                     self.kvstore.set("in_frequent_channel_last_call_time", get_current_timestamp())
             else:
                 channels = self._get_channel_ids("frequent_")
@@ -136,20 +136,29 @@ class SumoSlackCollector(BaseCollector):
     def _get_channel_ids(self, key):
         next_counter = self.kvstore.get(key + "channel_page_current_index", 0) + 1
         channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name,
-                                        key + next_counter, self.infrequent_channel_threshold)
+                                        key + str(next_counter), self.infrequent_channel_threshold)
 
-        if next_counter > self.kvstore.get(key + "Channels_Page_Number"):
+        if next_counter > self.kvstore.get(key + "channel_page_number", 0):
             if "CHANNELS_LOGS" in self.api_config['LOG_TYPES']:
-                self.kvstore.delete(key + "Channels_Page_Number")
-                self.kvstore.delete(key + "channel_page_current_index")
+                # Before fetching delete all keys for channels.
+                self._delete_channel_keys("frequent_", channels_data)
+                self._delete_channel_keys("in_frequent_", channels_data)
                 channels_data.fetch()
             return None
         else:
             self.log.info("Channels Data will not be fetched as all channels message data is not sent.")
 
         obj = channels_data.get_state()
-        self.kvstore.set(key + "channel_id_index", next_counter)
+        self.kvstore.set(key + "channel_page_current_index", next_counter)
         return obj
+
+    def _delete_channel_keys(self, key, channels_data):
+        number = self.kvstore.get(key + "channel_page_number")
+        if number:
+            for i in range(1, number + 1):
+                self.kvstore.delete(channels_data.get_key() + key + str(i))
+        self.kvstore.delete(key + "channel_page_number")
+        self.kvstore.delete(key + "channel_page_current_index")
 
     def _get_audit_actions(self, audit_url):
         url = audit_url + "actions"
