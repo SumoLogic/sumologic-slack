@@ -46,6 +46,10 @@ class SumoSlackCollector(BaseCollector):
         # Set threshold for infrequent and frequent channels
         self.infrequent_channel_threshold = self.config['Slack']['INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS'] * 60 * 60
 
+        # Chunk Size
+        self.frequent_channels_to_be_sent = self.config['Slack']['FREQUENT_CHANNELS_CHUNK_SIZE']
+        self.infrequent_channels_to_be_sent = self.config['Slack']['INFREQUENT_CHANNELS_CHUNK_SIZE']
+
     def _set_team_name(self):
         data = self.slackClient.api_call("team.info", self.collection_config['TIMEOUT'])
         if data is not None and data["ok"] and "team" in data:
@@ -136,7 +140,8 @@ class SumoSlackCollector(BaseCollector):
     def _get_channel_ids(self, key):
         next_counter = self.kvstore.get(key + "channel_page_current_index", 0) + 1
         channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name,
-                                        key + str(next_counter), self.infrequent_channel_threshold)
+                                        key + str(next_counter), self.infrequent_channel_threshold,
+                                        self.frequent_channels_to_be_sent, self.infrequent_channels_to_be_sent)
 
         if next_counter > self.kvstore.get(key + "channel_page_number", 0):
             if "CHANNELS_LOGS" in self.api_config['LOG_TYPES']:

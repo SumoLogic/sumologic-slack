@@ -3,8 +3,14 @@ Slack:
  AUDIT_LOG_URL: https://api.slack.com/audit/v1/
  ACCESS_LOGS_REFRESH_TIME_IN_HOURS: 24
  USER_LOGS_REFRESH_TIME_IN_HOURS: 24
+ # Threshold in hours to make channels as infrequent based on last message time.
  INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS: 1
+ # Time in hours to fetch messages for InFrequent channels.
  INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS: 24
+ # Number of channels to send messages for during individual lambda invocation
+ FREQUENT_CHANNELS_CHUNK_SIZE: 50
+ # Number of channels to send messages for during individual lambda invocation
+ INFREQUENT_CHANNELS_CHUNK_SIZE: 50
  LOG_TYPES:
   - USER_LOGS
   - ACCESS_LOGS

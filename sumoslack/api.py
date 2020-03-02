@@ -362,11 +362,14 @@ class ChannelsDataAPI(FetchCursorBasedData):
     frequent = "frequent_"
     in_frequent = "in_frequent_"
 
-    def __init__(self, kvstore, config, team_name, channel_page_number, infrequent_channel_threshold):
+    def __init__(self, kvstore, config, team_name, channel_page_number, infrequent_channel_threshold
+                 , frequent_channels_to_be_sent, infrequent_channels_to_be_sent):
         super(ChannelsDataAPI, self).__init__(kvstore, config, team_name)
         self.channel_page_number = channel_page_number
         # the max difference between current timestamp and last oldest fetched timestamp to mark a channel as infrequent
         self.infrequent_channel_threshold = infrequent_channel_threshold
+        self.infrequent_channels_to_be_sent = infrequent_channels_to_be_sent
+        self.frequent_channels_to_be_sent = frequent_channels_to_be_sent
 
     def get_key(self):
         return "Channels_"
@@ -404,9 +407,11 @@ class ChannelsDataAPI(FetchCursorBasedData):
                 else:
                     frequent_channels.append(channel_id + "#" + channel_name)
 
-        # segregate list into chunks of 50 and save them in database.
-        self.put_channels_data(frequent_channels, frequent_channel_page_number, self.frequent, cursor)
-        self.put_channels_data(infrequent_channels, in_frequent_channel_page_number, self.in_frequent, cursor)
+        # segregate list into chunks of User provided chunks and save them in database.
+        self.put_channels_data(frequent_channels, frequent_channel_page_number, self.frequent
+                               , cursor, self.frequent_channels_to_be_sent)
+        self.put_channels_data(infrequent_channels, in_frequent_channel_page_number, self.in_frequent
+                               , cursor, self.infrequent_channels_to_be_sent)
 
     def get_state(self):
         key = self.get_key() + str(self.channel_page_number)
@@ -440,8 +445,8 @@ class ChannelsDataAPI(FetchCursorBasedData):
                          "logType": "ChannelDetail", "teamName": self.team_name})
         return channel_details
 
-    def put_channels_data(self, channels, number, key, cursor):
-        ids = self.batchsize_chunking(channels, 50)
+    def put_channels_data(self, channels, number, key, cursor, channels_to_be_sent):
+        ids = self.batchsize_chunking(channels, channels_to_be_sent)
         for channels in ids:
             obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
             self.kvstore.set(self.get_key() + key + str(number), obj)
