@@ -501,7 +501,7 @@ class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
                 latest = state["last_record_fetched_timestamp"]
 
         return "conversations.history", {"channel": self.get_key(), "inclusive": True, "latest": latest,
-                                         "oldest": oldest}
+                                         "oldest": oldest, "limit": 500}
 
     def build_send_params(self):
         return {
