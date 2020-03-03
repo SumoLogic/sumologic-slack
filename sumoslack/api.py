@@ -131,11 +131,11 @@ class FetchPaginatedDataBasedOnLatestAndOldestTimeStamp(SlackAPI):
                             record_counter += len(data_to_be_sent)
                             last_record_fetched_timestamp = data_to_be_sent[-1]["ts"]
                             self.log.debug("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
-                                           method, args["latest"], args["oldest"], len(data_to_be_sent))
+                                           method, args["oldest"], args["latest"], len(data_to_be_sent))
 
                             if "has_more" in result and result["has_more"]:
                                 has_more_data = True
-                                args["latest"] = last_record_fetched_timestamp
+                                args["latest"] = float(last_record_fetched_timestamp) - 0.00001
                                 self.save_state(
                                     {"fetch_oldest": current_state["fetch_oldest"],
                                      "fetch_latest": current_state["fetch_latest"],
@@ -237,10 +237,10 @@ class FetchAuditData(FetchCursorBasedData):
                             self.log.debug("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
                                            log_type, args["latest"], args["oldest"], len(data_to_be_sent))
 
-                            args["latest"] = last_record_fetched_timestamp
+                            args["latest"] = float(last_record_fetched_timestamp) - 0.00001
                             if self._next_cursor_is_present(result):
                                 has_more_data = True
-                                args["latest"] = last_record_fetched_timestamp
+                                args["latest"] = float(last_record_fetched_timestamp) - 0.00001
                                 self.save_state(
                                     {"fetch_oldest": current_state["fetch_oldest"],
                                      "fetch_latest": current_state["fetch_latest"],

@@ -142,7 +142,7 @@ class SumoSlackCollector(BaseCollector):
         next_counter = self.kvstore.get(key + "channel_page_current_index", 0) + 1
         channels_data = ChannelsDataAPI(self.kvstore, self.config, self.team_name,
                                         key + str(next_counter), self.infrequent_channel_threshold,
-                                        self.frequent_channels_to_be_sent, not self.infrequent_channels_to_be_sent,
+                                        self.frequent_channels_to_be_sent, self.infrequent_channels_to_be_sent,
                                         self.enable_infrequent_channels)
 
         if next_counter > self.kvstore.get(key + "channel_page_number", 0):
