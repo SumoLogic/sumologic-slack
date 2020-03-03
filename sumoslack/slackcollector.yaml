@@ -1,54 +1,55 @@
 Slack:
- TOKEN: null
- AUDIT_LOG_URL: https://api.slack.com/audit/v1/
- ACCESS_LOGS_REFRESH_TIME_IN_HOURS: 24
- USER_LOGS_REFRESH_TIME_IN_HOURS: 24
- # Threshold in hours to make channels as infrequent based on last message time.
- INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS: 1
- # Time in hours to fetch messages for InFrequent channels.
- INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS: 24
- # Number of channels to send messages for during individual lambda invocation
- FREQUENT_CHANNELS_CHUNK_SIZE: 50
- # Number of channels to send messages for during individual lambda invocation
- INFREQUENT_CHANNELS_CHUNK_SIZE: 50
- LOG_TYPES:
-  - USER_LOGS
-  - ACCESS_LOGS
-  - CHANNELS_LOGS
-  - CHANNELS_MESSAGES_LOGS
-  - AUDIT_LOGS
- ExcludeAuditLog:
-  - None
+  TOKEN: null
+  AUDIT_LOG_URL: https://api.slack.com/audit/v1/
+  LOG_TYPES:
+    - USER_LOGS
+    - CHANNELS_LOGS
+    - CHANNELS_MESSAGES_LOGS
+  ExcludeAuditLog:
+    - None
+  ACCESS_LOGS_REFRESH_TIME_IN_HOURS: 24
+  USER_LOGS_REFRESH_TIME_IN_HOURS: 24
+  # Number of channels to send messages for during individual lambda invocation
+  FREQUENT_CHANNELS_CHUNK_SIZE: 50
+  # ***** InFrequent Channels Properties *****
+  # Flag to divide channels into frequent or infrequent channels.
+  ENABLE_INFREQUENT_CHANNELS: false
+  # Threshold in hours to make channels as infrequent based on last message time.
+  INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS: 72
+  # Time in hours to fetch messages for InFrequent channels.
+  INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS: 12
+  # Number of channels to send messages for during individual lambda invocation
+  INFREQUENT_CHANNELS_CHUNK_SIZE: 50
 
 Logging:
- LOG_FORMAT: "%(levelname)s | %(asctime)s | %(threadName)s | %(name)s | %(message)s"
- ROTATION_TYPE: D
- ROTATION_INTERVAL: 1
- BACKUP_COUNT: 7
- ENABLE_CONSOLE_LOG: true
- ENABLE_LOGFILE: false
- LOG_FILEPATH: /tmp/sumoslack.log
- LOG_LEVEL: "INFO"
+  LOG_FORMAT: "%(levelname)s | %(asctime)s | %(threadName)s | %(name)s | %(message)s"
+  ROTATION_TYPE: D
+  ROTATION_INTERVAL: 1
+  BACKUP_COUNT: 7
+  ENABLE_CONSOLE_LOG: true
+  ENABLE_LOGFILE: false
+  LOG_FILEPATH: /tmp/sumoslack.log
+  LOG_LEVEL: "INFO"
 
 Collection:
- ENVIRONMENT: onprem
- NUM_WORKERS: 2
- OUTPUT_HANDLER: HTTP
- MAX_RETRY: 5
- BACKOFF_FACTOR: 1
- TIMEOUT: 60
- COMPRESSED: true
- MAX_PAYLOAD_BYTESIZE: 500000
- END_TIME_EPOCH_OFFSET_SECONDS: 120
- BACKFILL_DAYS: null
- DBNAME: "sumoslack"
- DB_DIR: "~/sumo/"
+  ENVIRONMENT: onprem
+  NUM_WORKERS: 2
+  OUTPUT_HANDLER: HTTP
+  MAX_RETRY: 5
+  BACKOFF_FACTOR: 1
+  TIMEOUT: 60
+  COMPRESSED: true
+  MAX_PAYLOAD_BYTESIZE: 500000
+  END_TIME_EPOCH_OFFSET_SECONDS: 120
+  BACKFILL_DAYS: null
+  DBNAME: "sumoslack"
+  DB_DIR: "~/sumo/"
 
 DeployMetaData:
- PACKAGENAME: sumologic-slack
- SRC_FOLDER_NAME: sumoslack
- APPNAME: Slack
- ENABLE_LAYER: true
+  PACKAGENAME: sumologic-slack
+  SRC_FOLDER_NAME: sumoslack
+  APPNAME: Slack
+  ENABLE_LAYER: true
 
 SumoLogic:
- HTTP_LOGS_ENDPOINT: null
+  HTTP_LOGS_ENDPOINT: null

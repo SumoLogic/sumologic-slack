@@ -363,13 +363,14 @@ class ChannelsDataAPI(FetchCursorBasedData):
     in_frequent = "in_frequent_"
 
     def __init__(self, kvstore, config, team_name, channel_page_number, infrequent_channel_threshold
-                 , frequent_channels_to_be_sent, infrequent_channels_to_be_sent):
+                 , frequent_channels_to_be_sent, infrequent_channels_to_be_sent, enable_infrequent_channels):
         super(ChannelsDataAPI, self).__init__(kvstore, config, team_name)
         self.channel_page_number = channel_page_number
         # the max difference between current timestamp and last oldest fetched timestamp to mark a channel as infrequent
         self.infrequent_channel_threshold = infrequent_channel_threshold
         self.infrequent_channels_to_be_sent = infrequent_channels_to_be_sent
         self.frequent_channels_to_be_sent = frequent_channels_to_be_sent
+        self.enable_infrequent_channels = enable_infrequent_channels
 
     def get_key(self):
         return "Channels_"
@@ -400,7 +401,9 @@ class ChannelsDataAPI(FetchCursorBasedData):
                 channel_id = channel["channel_id"]
                 channel_name = channel["channel_name"]
                 messages_details = self.kvstore.get(channel_id)
-                if messages_details is not None and "fetch_oldest" in messages_details \
+                if self.enable_infrequent_channels \
+                        and messages_details is not None \
+                        and "fetch_oldest" in messages_details \
                         and get_current_timestamp() - messages_details.get("fetch_oldest") > \
                         self.infrequent_channel_threshold:
                     infrequent_channels.append(channel_id + "#" + channel_name)
@@ -498,7 +501,7 @@ class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
                 latest = state["last_record_fetched_timestamp"]
 
         return "conversations.history", {"channel": self.get_key(), "inclusive": True, "latest": latest,
-                                    "oldest": oldest}
+                                         "oldest": oldest}
 
     def build_send_params(self):
         return {
