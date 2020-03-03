@@ -3,8 +3,10 @@ Slack:
   AUDIT_LOG_URL: https://api.slack.com/audit/v1/
   LOG_TYPES:
     - USER_LOGS
+    - ACCESS_LOGS
     - CHANNELS_LOGS
     - CHANNELS_MESSAGES_LOGS
+    - AUDIT_LOGS
   ExcludeAuditLog:
     - None
   ACCESS_LOGS_REFRESH_TIME_IN_HOURS: 24
