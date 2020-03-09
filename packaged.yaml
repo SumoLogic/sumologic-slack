@@ -14,10 +14,10 @@ Metadata:
     - sumologic
     - serverless
     - Slack
-    LicenseUrl: s3://appdevstore-test/Slack/v1.0.4/5122657d5b9a0d3713e24d3a33eae431
+    LicenseUrl: s3://appdevstore-test/Slack/v1.0.5/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
-    ReadmeUrl: s3://appdevstore-test/Slack/v1.0.4/68649d4b9df20814a5607e6f07177746
-    SemanticVersion: 1.0.4
+    ReadmeUrl: s3://appdevstore-test/Slack/v1.0.5/bcde84d1d75cd6cda73473192c6a73df
+    SemanticVersion: 1.0.5
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -30,14 +30,40 @@ Outputs:
 Parameters:
   BackfillDays:
     Type: String
+    Description: Enter the number of days for which logs should be collected. For
+      eg, 2 means logs for last 2 days.
+    AllowedPattern: .+
   HttpLogsEndpoint:
     Type: String
+    Description: Paste the URL for the HTTP Logs source.
+    AllowedPattern: .+
   Token:
     Type: String
+    Description: Paste the TOKEN generated from Slack App.
+    AllowedPattern: .+
+  EnableInfrequentChannels:
+    Type: String
+    Description: True -> Enable dividing channels into frequent and infrequent based
+      on the last message time. False -> Send all public channels messages.
+    AllowedValues:
+    - true
+    - false
+    Default: false
+  InfrequentChannelsThresholdInHours:
+    Type: String
+    Description: Threshold in hours to make channels as infrequent based on last message
+      time. For eg, 12 hours means if the message is not recived for 12 hours, channel
+      will be marked as infrequent.
+    Default: 72
+  InfrequentChannelsMessagesFetchTimeInHours:
+    Type: String
+    Description: Time in hours to fetch messages for InFrequent channels. For eg,
+      12 hours means send infrequent channels messages every 12 hours.
+    Default: 12
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore-test/Slack/v1.0.4/f344fc7fdcce43b4b89d3d60bd9d6d1f
+      CodeUri: s3://appdevstore-test/Slack/v1.0.5/027965ee2c7f45ef0fdf62eed7e87abb
       Description: This function gets triggered perodically via CloudWatchEvents and
         fetches logs from Slack and ingest to SumoLogic
       Environment:
@@ -50,6 +76,12 @@ Resources:
             Ref: HttpLogsEndpoint
           TOKEN:
             Ref: Token
+          ENABLE_INFREQUENT_CHANNELS:
+            Ref: EnableInfrequentChannels
+          INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS:
+            Ref: InfrequentChannelsThresholdInHours
+          INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS:
+            Ref: InfrequentChannelsMessagesFetchTimeInHours
       Events:
         ScheduleRule:
           Properties:

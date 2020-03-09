@@ -36,11 +36,11 @@ Parameters:
     Type: String
     Description: Paste the URL for the HTTP Logs source.
     AllowedPattern: ".+"
-  SlackAppToken:
+  Token:
     Type: String
     Description: Paste the TOKEN generated from Slack App.
     AllowedPattern: ".+"
-  SlackEnableInfrequentChannels:
+  EnableInfrequentChannels:
     Type: String
     Description: "True -> Enable dividing channels into frequent and infrequent based on the last message time.
                   False -> Send all public channels messages."
@@ -48,11 +48,11 @@ Parameters:
       - true
       - false
     Default: false
-  SlackThresholdInfrequentChannels:
+  InfrequentChannelsThresholdInHours:
     Type: String
     Description: Threshold in hours to make channels as infrequent based on last message time. For eg, 12 hours means if the message is not recived for 12 hours, channel will be marked as infrequent.
     Default: 72
-  SlackFetchTimeInfrequentChannels:
+  InfrequentChannelsMessagesFetchTimeInHours:
     Type: String
     Description: Time in hours to fetch messages for InFrequent channels. For eg, 12 hours means send infrequent channels messages every 12 hours.
     Default: 12
@@ -71,13 +71,13 @@ Resources:
           HTTP_LOGS_ENDPOINT:
             Ref: HttpLogsEndpoint
           TOKEN:
-            Ref: SlackAppToken
+            Ref: Token
           ENABLE_INFREQUENT_CHANNELS:
             Ref: EnableInfrequentChannels
           INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS:
-            Ref: ThresholdInfrequentChannels
+            Ref: InfrequentChannelsThresholdInHours
           INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS:
-            Ref: FetchTimeInfrequentChannels
+            Ref: InfrequentChannelsMessagesFetchTimeInHours
       Events:
         ScheduleRule:
           Properties:
