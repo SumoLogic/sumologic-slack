@@ -15,11 +15,11 @@ Slack:
   FREQUENT_CHANNELS_CHUNK_SIZE: 50
   # ***** InFrequent Channels Properties *****
   # Flag to divide channels into frequent or infrequent channels.
-  ENABLE_INFREQUENT_CHANNELS: false
+  ENABLE_INFREQUENT_CHANNELS: null
   # Threshold in hours to make channels as infrequent based on last message time.
-  INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS: 72
+  INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS: null
   # Time in hours to fetch messages for InFrequent channels.
-  INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS: 12
+  INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS: null
   # Number of channels to send messages for during individual lambda invocation
   INFREQUENT_CHANNELS_CHUNK_SIZE: 50
 

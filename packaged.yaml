@@ -37,7 +37,7 @@ Parameters:
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore-test/Slack/v1.0.4/e74f23f56ae99c58a16e119551384e16
+      CodeUri: s3://appdevstore-test/Slack/v1.0.4/f344fc7fdcce43b4b89d3d60bd9d6d1f
       Description: This function gets triggered perodically via CloudWatchEvents and
         fetches logs from Slack and ingest to SumoLogic
       Environment:
