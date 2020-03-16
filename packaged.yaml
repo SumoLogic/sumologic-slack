@@ -16,7 +16,7 @@ Metadata:
     - Slack
     LicenseUrl: s3://appdevstore-test/Slack/v1.0.5/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
-    ReadmeUrl: s3://appdevstore-test/Slack/v1.0.5/bcde84d1d75cd6cda73473192c6a73df
+    ReadmeUrl: s3://appdevstore-test/Slack/v1.0.5/52fe6b971cb61ddf316442188150fb32
     SemanticVersion: 1.0.5
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
@@ -63,7 +63,7 @@ Parameters:
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore-test/Slack/v1.0.5/027965ee2c7f45ef0fdf62eed7e87abb
+      CodeUri: s3://appdevstore-test/Slack/v1.0.5/84b328d3116ca39b5cbbf2d4f4ee101d
       Description: This function gets triggered perodically via CloudWatchEvents and
         fetches logs from Slack and ingest to SumoLogic
       Environment:
