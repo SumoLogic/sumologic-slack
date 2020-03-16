@@ -32,8 +32,16 @@ This collector can be deployed both onprem and on cloud.
 
             ```
             Slack:
-                TOKEN: <Paste the URL for the SLACK API TOKEN from step 1.>
-                
+                TOKEN: <Paste the Token collected from Slack App from step 1.>
+                ENABLE_INFREQUENT_CHANNELS: < Default is false.
+                                              true -> Enable dividing channels into frequent and infrequent based on the last message time.
+                                              false -> Send all public channels messages.>
+                INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS: < Default is 72.
+                                                          Threshold in hours to make channels as infrequent based on last message time. 
+                                                          For eg, 12 hours means if the message is not recived for 12 hours, channel will be marked as infrequent.>
+                INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS: < Default is 12.
+                                                                    Time in hours to fetch messages for InFrequent channels.
+                                                                    For eg, 12 hours means send infrequent channels messages every 12 hours.>
             Collection:
                 BACKFILL_DAYS: <Enter the Number of days before the event collection will start.>
  
@@ -56,9 +64,18 @@ This collector can be deployed both onprem and on cloud.
         ![Deploy](https://appdev-readme-resources.s3.amazonaws.com/slack/Deploy.png)
 
             ```
-            Token: Paste the URL for the SLACK API TOKEN from step 1.
+            Token: Paste the Token collected from Slack App from step 1.
             HttpLogsEndpoint: Paste the URL for the HTTP Logs source from step 2.
             BackfillDays: Enter the Number of days before the event collection will start
+            EnableInfrequentChannels: Default is false. 
+                                      true -> Enable dividing channels into frequent and infrequent based on the last message time.
+                                      false -> Send all public channels messages.
+            InfrequentChannelsThresholdInHours: Default is 72.
+                                                Threshold in hours to make channels as infrequent based on last message time. 
+                                                For eg, 12 hours means if the message is not recived for 12 hours, channel will be marked as infrequent.
+            InfrequentChannelsMessagesFetchTimeInHours: Default is 12.
+                                                        Time in hours to fetch messages for InFrequent channels.
+                                                        For eg, 12 hours means send infrequent channels messages every 12 hours.
             ```
         * Click Deploy.
 

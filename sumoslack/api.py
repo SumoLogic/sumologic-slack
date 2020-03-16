@@ -131,11 +131,11 @@ class FetchPaginatedDataBasedOnLatestAndOldestTimeStamp(SlackAPI):
                             record_counter += len(data_to_be_sent)
                             last_record_fetched_timestamp = data_to_be_sent[-1]["ts"]
                             self.log.debug("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
-                                           method, args["latest"], args["oldest"], len(data_to_be_sent))
+                                           method, args["oldest"], args["latest"], len(data_to_be_sent))
 
                             if "has_more" in result and result["has_more"]:
                                 has_more_data = True
-                                args["latest"] = last_record_fetched_timestamp
+                                args["latest"] = float(last_record_fetched_timestamp) - 0.00001
                                 self.save_state(
                                     {"fetch_oldest": current_state["fetch_oldest"],
                                      "fetch_latest": current_state["fetch_latest"],
@@ -237,10 +237,10 @@ class FetchAuditData(FetchCursorBasedData):
                             self.log.debug("Successfully sent LogType %s, oldest %s, latest %s, number of records %s",
                                            log_type, args["latest"], args["oldest"], len(data_to_be_sent))
 
-                            args["latest"] = last_record_fetched_timestamp
+                            args["latest"] = float(last_record_fetched_timestamp) - 0.00001
                             if self._next_cursor_is_present(result):
                                 has_more_data = True
-                                args["latest"] = last_record_fetched_timestamp
+                                args["latest"] = float(last_record_fetched_timestamp) - 0.00001
                                 self.save_state(
                                     {"fetch_oldest": current_state["fetch_oldest"],
                                      "fetch_latest": current_state["fetch_latest"],
@@ -268,15 +268,16 @@ class FetchAuditData(FetchCursorBasedData):
                            exc)
         finally:
             output_handler.close()
+            sess.close()
         self.log.info("Completed LogType %s, Pages: %s, Records %s", log_type, page_counter,
                       record_counter)
 
 
 class UsersDataAPI(FetchCursorBasedData):
-    DATA_REFRESH_TIME = 24 * 60 * 60
 
-    def __init__(self, kvstore, config, team_name):
+    def __init__(self, kvstore, config, team_name, data_refresh_time):
         super(UsersDataAPI, self).__init__(kvstore, config, team_name)
+        self.data_refresh_time = data_refresh_time
 
     def get_key(self):
         return "Users"
@@ -329,7 +330,7 @@ class UsersDataAPI(FetchCursorBasedData):
             last_sent = user["lastSent"]
 
         # Send user data every 24 hours and meanwhile if updated send it
-        if last_updated == user_data["updated"] and get_current_timestamp() - last_sent < self.DATA_REFRESH_TIME:
+        if last_updated == user_data["updated"] and get_current_timestamp() - last_sent < self.data_refresh_time:
             self.log.debug("user already present")
         else:
             transformed_user_data = {"id": user_data.get("id"), "name": user_data.get("name"),
@@ -358,11 +359,18 @@ class UsersDataAPI(FetchCursorBasedData):
 
 
 class ChannelsDataAPI(FetchCursorBasedData):
-    DATA_REFRESH_TIME = 6 * 60 * 60
+    frequent = "frequent_"
+    in_frequent = "in_frequent_"
 
-    def __init__(self, kvstore, config, team_name, channelnumber):
+    def __init__(self, kvstore, config, team_name, channel_page_number, infrequent_channel_threshold
+                 , frequent_channels_to_be_sent, infrequent_channels_to_be_sent, enable_infrequent_channels):
         super(ChannelsDataAPI, self).__init__(kvstore, config, team_name)
-        self.channelNumber = channelnumber
+        self.channel_page_number = channel_page_number
+        # the max difference between current timestamp and last oldest fetched timestamp to mark a channel as infrequent
+        self.infrequent_channel_threshold = infrequent_channel_threshold
+        self.infrequent_channels_to_be_sent = infrequent_channels_to_be_sent
+        self.frequent_channels_to_be_sent = frequent_channels_to_be_sent
+        self.enable_infrequent_channels = enable_infrequent_channels
 
     def get_key(self):
         return "Channels_"
@@ -370,27 +378,46 @@ class ChannelsDataAPI(FetchCursorBasedData):
     # Saving state as per the channels calls for limit of 50. Keys will be like Channels_1, Channels_2, Channels_3 ....
     # Done to solve issue "Item size has exceeded the maximum allowed size"
     def save_state(self, cursor, data):
-        channel_ids = []
+        # Get frequent channels current page
+        frequent_channel_page_number = self.kvstore.get("frequent_channel_page_number")
+        frequent_channel_page_number = 1 if frequent_channel_page_number is None else frequent_channel_page_number
 
+        frequent_channels = self.kvstore.get(self.get_key() + self.frequent + str(frequent_channel_page_number))
+        frequent_channels = [] if frequent_channels is None or frequent_channels["ids"] is None \
+            else frequent_channels["ids"]
+
+        # Get in-frequent channels current page
+        in_frequent_channel_page_number = self.kvstore.get("in_frequent_channel_page_number")
+        in_frequent_channel_page_number = 1 if in_frequent_channel_page_number is None \
+            else in_frequent_channel_page_number
+
+        infrequent_channels = self.kvstore.get(self.get_key() + self.in_frequent + str(in_frequent_channel_page_number))
+        infrequent_channels = [] if infrequent_channels is None or infrequent_channels["ids"] is None \
+            else infrequent_channels["ids"]
+
+        # Update the frequent and infrequent list as per threshold provided by user
         if data is not None:
             for channel in data:
-                channel_ids.append(channel["channel_id"] + "#" + channel["channel_name"])
+                channel_id = channel["channel_id"]
+                channel_name = channel["channel_name"]
+                messages_details = self.kvstore.get(channel_id)
+                if self.enable_infrequent_channels \
+                        and messages_details is not None \
+                        and "fetch_oldest" in messages_details \
+                        and get_current_timestamp() - messages_details.get("fetch_oldest") > \
+                        self.infrequent_channel_threshold:
+                    infrequent_channels.append(channel_id + "#" + channel_name)
+                else:
+                    frequent_channels.append(channel_id + "#" + channel_name)
 
-        # Set the channels page number count after dividing channels into group of 50.
-        if self.kvstore.get("Channels_Page_Number") is None:
-            number = 1
-        else:
-            number = self.kvstore.get("Channels_Page_Number") + 1
-
-        ids = self.batchsize_chunking(channel_ids, 50)
-        for channels in ids:
-            obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
-            self.kvstore.set(self.get_key() + str(number), obj)
-            self.kvstore.set("Channels_Page_Number", number)
-            number = number + 1
+        # segregate list into chunks of User provided chunks and save them in database.
+        self.put_channels_data(frequent_channels, frequent_channel_page_number, self.frequent
+                               , cursor, self.frequent_channels_to_be_sent)
+        self.put_channels_data(infrequent_channels, in_frequent_channel_page_number, self.in_frequent
+                               , cursor, self.infrequent_channels_to_be_sent)
 
     def get_state(self):
-        key = self.get_key() + str(self.channelNumber)
+        key = self.get_key() + str(self.channel_page_number)
         if not self.kvstore.has_key(key):
             return None
         obj = self.kvstore.get(key)
@@ -398,7 +425,7 @@ class ChannelsDataAPI(FetchCursorBasedData):
 
     def build_fetch_params(self):
         cursor = None
-        self.channelNumber = self.kvstore.get("Channels_Page_Number")
+        self.channel_page_number = self.frequent + str(self.kvstore.get("frequent_channel_page_number"))
         obj = self.get_state()
         if obj is not None and "cursor" in obj:
             cursor = obj["cursor"]
@@ -420,6 +447,14 @@ class ChannelsDataAPI(FetchCursorBasedData):
                          "members": channel["num_members"],
                          "logType": "ChannelDetail", "teamName": self.team_name})
         return channel_details
+
+    def put_channels_data(self, channels, number, key, cursor, channels_to_be_sent):
+        ids = self.batchsize_chunking(channels, channels_to_be_sent)
+        for channels in ids:
+            obj = {"ids": channels, "last_fetched": get_current_timestamp(), "cursor": cursor}
+            self.kvstore.set(self.get_key() + key + str(number), obj)
+            self.kvstore.set(key + "channel_page_number", number)
+            number = number + 1
 
     def batchsize_chunking(cls, iterable, size=1):
         l = len(iterable)
@@ -465,8 +500,8 @@ class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
             if "last_record_fetched_timestamp" in state and state["last_record_fetched_timestamp"] is not None:
                 latest = state["last_record_fetched_timestamp"]
 
-        return "channels.history", {"channel": self.get_key(), "inclusive": True, "latest": latest,
-                                    "oldest": oldest}
+        return "conversations.history", {"channel": self.get_key(), "inclusive": True, "latest": latest,
+                                         "oldest": oldest, "limit": 500}
 
     def build_send_params(self):
         return {
