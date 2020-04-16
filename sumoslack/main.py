@@ -37,8 +37,7 @@ class SumoSlackCollector(BaseCollector):
         # Populate Team Name in Key Value Pair
         self.team_name = self._set_team_name()
 
-        # Set Data refresh time for access logs, user logs
-        self.access_logs_data_refresh_time = self.config['Slack']['ACCESS_LOGS_REFRESH_TIME_IN_HOURS'] * 60 * 60
+        # Set Data refresh time for user logs
         self.user_logs_data_refresh_time = self.config['Slack']['USER_LOGS_REFRESH_TIME_IN_HOURS'] * 60 * 60
 
         self.frequent_channels_to_be_sent = self.config['Slack']['FREQUENT_CHANNELS_CHUNK_SIZE']
@@ -104,27 +103,22 @@ class SumoSlackCollector(BaseCollector):
                             ChannelsMessagesAPI(self.kvstore, self.config, channel[0], channel[1], self.team_name))
 
             # ************** ACCESS LOGS PROCESS **************
-            call_access_logs = True
-
-            if self.kvstore.get("Access_logs_page_index") == 1 \
-                    and get_current_timestamp() - self.kvstore.get("Access_logs_call_time") \
-                    < self.access_logs_data_refresh_time:
-                self.log.info("All Data for access logs has been sent. New Data will be sent after refresh time.")
-                call_access_logs = False
-
-            if "ACCESS_LOGS" in self.api_config['LOG_TYPES'] and call_access_logs:
+            if "ACCESS_LOGS" in self.api_config['LOG_TYPES']:
                 page = self.kvstore.get("Access_logs_page_index", 1)
-                next_page = min(self.MAX_PAGE, page + self.PAGE_COUNTER)
-                for page_number in range(page, next_page):
-                    tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
+                next_page = page + self.PAGE_COUNTER
 
-                self.kvstore.set("Access_logs_page_index", next_page)
-                if page == 1:
-                    self.kvstore.set("Access_logs_call_time", get_current_timestamp())
+                max_page = min(self.kvstore.get("Access_logs_max_page", next_page), self.MAX_PAGE)
 
-                if next_page == self.MAX_PAGE:
+                if page >= max_page:
                     self.kvstore.set("Access_logs_page_index", 1)
+                    self.kvstore.set("Access_logs_Previous_before_time",
+                                     self.kvstore.get("AccessLogs").get("fetch_before"))
                     self.kvstore.delete("AccessLogs")
+                    self.kvstore.delete("Access_logs_max_page")
+                else:
+                    for page_number in range(page, next_page):
+                        tasks.append(AccessLogsAPI(self.kvstore, self.config, page_number, self.team_name))
+                    self.kvstore.set("Access_logs_page_index", next_page)
 
             # ************** AUDIT LOGS PROCESS **************
             if "AUDIT_LOGS" in self.api_config['LOG_TYPES'] and "AUDIT_LOG_URL" in self.api_config:

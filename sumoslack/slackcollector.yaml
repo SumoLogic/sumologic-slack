@@ -9,7 +9,6 @@ Slack:
     - AUDIT_LOGS
   ExcludeAuditLog:
     - None
-  ACCESS_LOGS_REFRESH_TIME_IN_HOURS: 24
   USER_LOGS_REFRESH_TIME_IN_HOURS: 24
   # Number of channels to send messages for during individual lambda invocation
   FREQUENT_CHANNELS_CHUNK_SIZE: 50

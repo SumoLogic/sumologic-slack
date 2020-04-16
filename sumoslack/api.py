@@ -185,12 +185,14 @@ class FetchPaginatedDataBasedOnPageNumber(SlackAPI):
                 if len(data_to_be_sent) > 0:
                     send_success = output_handler.send(data_to_be_sent, **self.build_send_params())
                     if send_success:
+                        self.save_state(result["paging"])
                         self.log.debug("Sent successfully for LogType %s, Page %s, Before %s, Records %s", method,
                                        self.page, args["before"], len(data_to_be_sent))
                     else:
                         self.log.warning("Send failed for LogType %s, Page %s, Before %s", method, self.page,
                                          args["before"])
                 else:
+                    self.save_state(result["paging"])
                     self.log.debug("No Result fetched for LogType %s, Page %s, Before %s", method, self.page,
                                    args["before"])
             else:
@@ -563,12 +565,17 @@ class AccessLogsAPI(FetchPaginatedDataBasedOnPageNumber):
         return "AccessLogs"
 
     def save_state(self, state):
-        self.kvstore.set(self.get_key(), state)
+        if "pages" in state:
+            if self.page == 1:
+                self.kvstore.set("Access_logs_max_page", state["pages"] + 1)
+        else:
+            self.kvstore.set(self.get_key(), state)
 
     def get_state(self):
         key = self.get_key()
         if not self.kvstore.has_key(key):
-            self.save_state({"fetch_before": get_current_timestamp()})
+            oldest, latest = self.get_window(get_current_timestamp())
+            self.save_state({"fetch_before": latest})
         obj = self.kvstore.get(key)
         return obj
 
@@ -593,7 +600,8 @@ class AccessLogsAPI(FetchPaginatedDataBasedOnPageNumber):
             for log in logs:
                 log["teamName"] = self.team_name
                 log["logType"] = "AccessLog"
-                data.append(log)
+                if "date_last" in log and log["date_last"] > self.kvstore.get("Access_logs_Previous_before_time", 0):
+                    data.append(log)
         return data
 
 
