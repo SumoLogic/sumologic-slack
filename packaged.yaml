@@ -14,10 +14,10 @@ Metadata:
     - sumologic
     - serverless
     - Slack
-    LicenseUrl: s3://appdevstore/Slack/v1.0.6/5122657d5b9a0d3713e24d3a33eae431
+    LicenseUrl: s3://appdevstore-test/Slack/v1.0.7/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
-    ReadmeUrl: s3://appdevstore/Slack/v1.0.6/186b7ab8d59fb47055a506b158bec2ae
-    SemanticVersion: 1.0.6
+    ReadmeUrl: s3://appdevstore-test/Slack/v1.0.7/186b7ab8d59fb47055a506b158bec2ae
+    SemanticVersion: 1.0.7
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Outputs:
@@ -37,10 +37,12 @@ Parameters:
     Type: String
     Description: Paste the URL for the HTTP Logs source.
     AllowedPattern: .+
+    NoEcho: true
   Token:
     Type: String
     Description: Paste the TOKEN generated from Slack App.
     AllowedPattern: .+
+    NoEcho: true
   EnableInfrequentChannels:
     Type: String
     Description: True -> Enable dividing channels into frequent and infrequent based
@@ -60,10 +62,14 @@ Parameters:
     Description: Time in hours to fetch messages for InFrequent channels. For eg,
       12 hours means send infrequent channels messages every 12 hours.
     Default: 12
+  DatabaseName:
+    Type: String
+    Description: DynamoDB DataBase Table Name.
+    Default: sumoslack
 Resources:
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore/Slack/v1.0.6/4e5666895853e628de77b2fe44692b76
+      CodeUri: s3://appdevstore-test/Slack/v1.0.7/c0e883181b33d60d02e1b431a076e003
       Description: This function gets triggered perodically via CloudWatchEvents and
         fetches logs from Slack and ingest to SumoLogic
       Environment:
@@ -82,6 +88,8 @@ Resources:
             Ref: InfrequentChannelsThresholdInHours
           INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS:
             Ref: InfrequentChannelsMessagesFetchTimeInHours
+          DBNAME:
+            Ref: DatabaseName
       Events:
         ScheduleRule:
           Properties:
