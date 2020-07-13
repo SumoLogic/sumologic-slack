@@ -44,7 +44,7 @@ This collector can be deployed both onprem and on cloud.
                                                                     For eg, 12 hours means send infrequent channels messages every 12 hours.>
             Collection:
                 BACKFILL_DAYS: <Enter the Number of days before the event collection will start.>
- 
+                DBNAME: <New Database Name.>
             SumoLogic:
                 HTTP_LOGS_ENDPOINT: <Paste the URL for the HTTP Logs source from step 2.>
             ```
