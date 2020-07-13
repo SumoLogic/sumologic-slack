@@ -577,6 +577,8 @@ class AccessLogsAPI(FetchPaginatedDataBasedOnPageNumber):
             oldest, latest = self.get_window(get_current_timestamp())
             self.save_state({"fetch_before": latest})
         obj = self.kvstore.get(key)
+        if self.kvstore.get("Access_logs_Previous_before_time", 0) == 0:
+            self.kvstore.set("Access_logs_Previous_before_time", self.DEFAULT_START_TIME_EPOCH)
         return obj
 
     def build_fetch_params(self):

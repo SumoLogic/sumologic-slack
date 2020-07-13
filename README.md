@@ -44,7 +44,7 @@ This collector can be deployed both onprem and on cloud.
                                                                     For eg, 12 hours means send infrequent channels messages every 12 hours.>
             Collection:
                 BACKFILL_DAYS: <Enter the Number of days before the event collection will start.>
- 
+                DBNAME: <New Database Name.>
             SumoLogic:
                 HTTP_LOGS_ENDPOINT: <Paste the URL for the HTTP Logs source from step 2.>
             ```
@@ -67,6 +67,7 @@ This collector can be deployed both onprem and on cloud.
             Token: Paste the Token collected from Slack App from step 1.
             HttpLogsEndpoint: Paste the URL for the HTTP Logs source from step 2.
             BackfillDays: Enter the Number of days before the event collection will start
+            DatabaseName: Enter the DataBase Name. 
             EnableInfrequentChannels: Default is false. 
                                       true -> Enable dividing channels into frequent and infrequent based on the last message time.
                                       false -> Send all public channels messages.
