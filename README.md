@@ -67,6 +67,7 @@ This collector can be deployed both onprem and on cloud.
             Token: Paste the Token collected from Slack App from step 1.
             HttpLogsEndpoint: Paste the URL for the HTTP Logs source from step 2.
             BackfillDays: Enter the Number of days before the event collection will start
+            DatabaseName: Enter the DataBase Name. 
             EnableInfrequentChannels: Default is false. 
                                       true -> Enable dividing channels into frequent and infrequent based on the last message time.
                                       false -> Send all public channels messages.
