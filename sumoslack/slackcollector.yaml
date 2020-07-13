@@ -43,7 +43,7 @@ Collection:
   MAX_PAYLOAD_BYTESIZE: 500000
   END_TIME_EPOCH_OFFSET_SECONDS: 120
   BACKFILL_DAYS: null
-  DBNAME: null
+  DBNAME: "sumoslack"
   DB_DIR: "~/sumo/"
 
 DeployMetaData:
