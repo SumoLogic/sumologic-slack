@@ -54,3 +54,9 @@ DeployMetaData:
 
 SumoLogic:
   HTTP_LOGS_ENDPOINT: null
+
+Secrets:
+  DECRYPT_KEYS: false
+  KEYS:
+    HTTP_LOGS_ENDPOINT: AwsSecretManager
+    TOKEN: AwsSecretManager

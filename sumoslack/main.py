@@ -29,6 +29,7 @@ class SumoSlackCollector(BaseCollector):
         self.project_dir = get_current_dir()
         super(SumoSlackCollector, self).__init__(self.project_dir)
 
+    def _set_basic_data(self):
         # Set Slack configuration and create Slack Client
         self.api_config = self.config['Slack']
         self.token = self.config['Slack']['TOKEN']
@@ -67,8 +68,10 @@ class SumoSlackCollector(BaseCollector):
         return self.kvstore.release_lock(self.SINGLE_PROCESS_LOCK_KEY)
 
     def build_task_params(self):
+        self.log.info("Building task Parameters............")
         tasks = []
         shuffle_tasks = []
+        self._set_basic_data()
         if 'LOG_TYPES' in self.api_config:
             # ************** USER LOGS PROCESS **************
             if "USER_LOGS" in self.api_config['LOG_TYPES']:
@@ -130,6 +133,7 @@ class SumoSlackCollector(BaseCollector):
 
         shuffle(shuffle_tasks)
         tasks.extend(shuffle_tasks)
+        self.log.info("Building task Parameters Done.")
         return tasks
 
     def _get_channel_ids(self, key):
@@ -197,11 +201,11 @@ class SumoSlackCollector(BaseCollector):
         if self.is_running():
             try:
                 self.log.info('Starting Slack Sumo Collector...')
-                task_params = self.build_task_params()
+                #task_params = self.build_task_params()
                 all_futures = {}
                 self.log.debug("spawning %d workers" % self.config['Collection']['NUM_WORKERS'])
                 with futures.ThreadPoolExecutor(max_workers=self.config['Collection']['NUM_WORKERS']) as executor:
-                    results = {executor.submit(apiobj.fetch): apiobj for apiobj in task_params}
+                    results = {executor.submit(apiobj.fetch): apiobj for apiobj in self.task_params}
                     all_futures.update(results)
                 for future in futures.as_completed(all_futures):
                     param = all_futures[future]
