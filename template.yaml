@@ -34,7 +34,7 @@ Conditions:
 
 Parameters:
   AwsKmsKeyARN:
-    Default: 'arn:aws:kms:us-east-1:956882708938:key/d8d41f9c-922a-4b31-9306-9bea81a00386'
+    Default: ''
     Description: Please provide an existing KMS Key ARN to encrypt the Environment
       variables HTTP_LOGS_ENDPOINT, TOKEN. If kept empty, a new KMS Key ID will be
       created.
@@ -48,7 +48,7 @@ Parameters:
     AllowedValues:
       - 'Yes'
       - 'No'
-    Default: 'Yes'
+    Default: 'No'
     Description: Yes -> Encrypt the Provided Environment variables HTTP_LOGS_ENDPOINT,
       TOKEN using KMS and Secret Manager. No -> No encryption.
     Type: String
