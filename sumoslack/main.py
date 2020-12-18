@@ -49,6 +49,8 @@ class SumoSlackCollector(BaseCollector):
         self.infrequent_channel_threshold = self.config['Slack']['INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS'] * 60 * 60
         self.infrequent_channels_to_be_sent = self.config['Slack']['INFREQUENT_CHANNELS_CHUNK_SIZE']
         self.enable_infrequent_channels = self.config['Slack']['ENABLE_INFREQUENT_CHANNELS']
+        if type(self.enable_infrequent_channels) != bool:
+            self.enable_infrequent_channels = True if self.enable_infrequent_channels.lower() == "true" else False
 
     def _set_team_name(self):
         data = self.slackClient.api_call("team.info", self.collection_config['TIMEOUT'])
@@ -201,7 +203,7 @@ class SumoSlackCollector(BaseCollector):
         if self.is_running():
             try:
                 self.log.info('Starting Slack Sumo Collector...')
-                #task_params = self.build_task_params()
+                # task_params = self.build_task_params()
                 all_futures = {}
                 self.log.debug("spawning %d workers" % self.config['Collection']['NUM_WORKERS'])
                 with futures.ThreadPoolExecutor(max_workers=self.config['Collection']['NUM_WORKERS']) as executor:
