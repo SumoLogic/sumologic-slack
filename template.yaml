@@ -37,7 +37,7 @@ Parameters:
     Default: ''
     Description: Please provide an existing KMS Key ARN to encrypt the Environment
       variables HTTP_LOGS_ENDPOINT, TOKEN. If kept empty, a new KMS Key ID will be
-      created.
+      created if CreateSecret is Yes.
     Type: String
   BackfillDays:
     Type: String
@@ -72,8 +72,7 @@ Parameters:
     Default: false
   DatabaseName:
     Type: String
-    Description: DynamoDB DataBase Table Name. Please Provide a table Name for each
-      seperate Token you create.
+    Description: DynamoDB Table Name. Use the table name to identify the Slack Workspace for which you are collecting logs. Do not use the same DataBase Name across multiple installations.
     Default: sumoslack
 
 Resources:
