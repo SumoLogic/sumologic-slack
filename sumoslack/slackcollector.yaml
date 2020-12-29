@@ -22,7 +22,7 @@ Slack:
   # Number of channels to send messages for during individual lambda invocation
   INFREQUENT_CHANNELS_CHUNK_SIZE: 50
   # Increase the Page Counter value to fetch more access Logs in a Execution. Default is to fetch 2 Access Logs Page.
-  # Max Pages that can be fetched is 100.
+  # Max Pages that can be fetched is 100. For better performance, keep the default value.
   ACCESS_LOGS_PAGE_COUNTER: 2
 
 Logging:
