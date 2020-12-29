@@ -23,7 +23,6 @@ class SumoSlackCollector(BaseCollector):
     SINGLE_PROCESS_LOCK_KEY = 'is_slack_collector_running'
     CONFIG_FILENAME = "slackcollector.yaml"
     MAX_PAGE = 101
-    PAGE_COUNTER = 2
 
     def __init__(self):
         self.project_dir = get_current_dir()
@@ -51,6 +50,8 @@ class SumoSlackCollector(BaseCollector):
         self.enable_infrequent_channels = self.config['Slack']['ENABLE_INFREQUENT_CHANNELS']
         if type(self.enable_infrequent_channels) != bool:
             self.enable_infrequent_channels = True if self.enable_infrequent_channels.lower() == "true" else False
+
+        self.PAGE_COUNTER = self.config['Slack']['ACCESS_LOGS_PAGE_COUNTER']
 
     def _set_team_name(self):
         data = self.slackClient.api_call("team.info", self.collection_config['TIMEOUT'])
