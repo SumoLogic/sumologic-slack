@@ -525,7 +525,7 @@ class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
 
     def get_replies(self, data):
         replies = []
-        response = self.slackClient.api_call("conversations.replies", channel=self.channel_id, ts=data["ts"], limit=10)
+        response = self.slackClient.api_call("conversations.replies", channel=self.channel_id, ts=data["ts"], limit=500)
         replies.extend(self.transform_replies(response))
         while "has_more" in response and response["has_more"]:
             response = self.slackClient.api_call("conversations.replies", channel=self.channel_id, ts=data["ts"],
