@@ -16,7 +16,7 @@ Metadata:
     LicenseUrl: ./LICENSE
     Name: sumologic-slack
     ReadmeUrl: ./README.md
-    SemanticVersion: 1.1.0
+    SemanticVersion: 1.1.1
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 
@@ -154,8 +154,6 @@ Resources:
           Type: Schedule
       Handler: main.main
       MemorySize: 256
-      Policies:
-        - AmazonDynamoDBFullAccess
       Role:
         Fn::GetAtt:
           - LambdaRole
