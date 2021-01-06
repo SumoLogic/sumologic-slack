@@ -5,7 +5,6 @@ from random import shuffle
 
 sys.path.insert(0, '/opt')  # layer packages are in opt directory
 
-from concurrent import futures
 from slackclient import SlackClient
 from sumoappclient.common.utils import get_current_timestamp
 from sumoappclient.sumoclient.base import BaseCollector
@@ -23,12 +22,12 @@ class SumoSlackCollector(BaseCollector):
     SINGLE_PROCESS_LOCK_KEY = 'is_slack_collector_running'
     CONFIG_FILENAME = "slackcollector.yaml"
     MAX_PAGE = 101
-    PAGE_COUNTER = 2
 
     def __init__(self):
         self.project_dir = get_current_dir()
         super(SumoSlackCollector, self).__init__(self.project_dir)
 
+    def _set_basic_data(self):
         # Set Slack configuration and create Slack Client
         self.api_config = self.config['Slack']
         self.token = self.config['Slack']['TOKEN']
@@ -48,6 +47,10 @@ class SumoSlackCollector(BaseCollector):
         self.infrequent_channel_threshold = self.config['Slack']['INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS'] * 60 * 60
         self.infrequent_channels_to_be_sent = self.config['Slack']['INFREQUENT_CHANNELS_CHUNK_SIZE']
         self.enable_infrequent_channels = self.config['Slack']['ENABLE_INFREQUENT_CHANNELS']
+        if type(self.enable_infrequent_channels) != bool:
+            self.enable_infrequent_channels = True if self.enable_infrequent_channels.lower() == "true" else False
+
+        self.PAGE_COUNTER = self.config['Slack']['ACCESS_LOGS_PAGE_COUNTER']
 
     def _set_team_name(self):
         data = self.slackClient.api_call("team.info", self.collection_config['TIMEOUT'])
@@ -58,17 +61,11 @@ class SumoSlackCollector(BaseCollector):
             self.log.error("Team name call failed with error as %s", data["error"])
             sys.exit()
 
-    def is_running(self):
-        self.log.debug("Acquiring single instance lock")
-        return self.kvstore.acquire_lock(self.SINGLE_PROCESS_LOCK_KEY)
-
-    def stop_running(self):
-        self.log.debug("Releasing single instance lock")
-        return self.kvstore.release_lock(self.SINGLE_PROCESS_LOCK_KEY)
-
     def build_task_params(self):
+        self.log.info("Building task Parameters............")
         tasks = []
         shuffle_tasks = []
+        self._set_basic_data()
         if 'LOG_TYPES' in self.api_config:
             # ************** USER LOGS PROCESS **************
             if "USER_LOGS" in self.api_config['LOG_TYPES']:
@@ -130,6 +127,7 @@ class SumoSlackCollector(BaseCollector):
 
         shuffle(shuffle_tasks)
         tasks.extend(shuffle_tasks)
+        self.log.info("Building task Parameters Done.")
         return tasks
 
     def _get_channel_ids(self, key):
@@ -192,31 +190,6 @@ class SumoSlackCollector(BaseCollector):
             self.log.error("Error Occurred while fetching Audit Actions Error %s", exc)
         finally:
             sess.close()
-
-    def run(self, *args, **kwargs):
-        if self.is_running():
-            try:
-                self.log.info('Starting Slack Sumo Collector...')
-                task_params = self.build_task_params()
-                all_futures = {}
-                self.log.debug("spawning %d workers" % self.config['Collection']['NUM_WORKERS'])
-                with futures.ThreadPoolExecutor(max_workers=self.config['Collection']['NUM_WORKERS']) as executor:
-                    results = {executor.submit(apiobj.fetch): apiobj for apiobj in task_params}
-                    all_futures.update(results)
-                for future in futures.as_completed(all_futures):
-                    param = all_futures[future]
-                    api_type = str(param)
-                    try:
-                        future.result()
-                        obj = self.kvstore.get(api_type)
-                    except Exception as exc:
-                        self.log.error(f"API Type: {api_type} thread generated an exception: {exc}", exc_info=True)
-                    else:
-                        self.log.info(f"API Type: {api_type} thread completed {obj}")
-            finally:
-                self.stop_running()
-        else:
-            self.kvstore.release_lock_on_expired_key(self.SINGLE_PROCESS_LOCK_KEY, expiry_min=10)
 
 
 def main(*args, **kwargs):

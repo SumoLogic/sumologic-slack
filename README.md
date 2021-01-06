@@ -22,11 +22,11 @@ This collector can be deployed both onprem and on cloud.
     * **Method 1** - Configuring the **sumologic-slack** collector
 
         Below instructions assume pip is already installed if not then, see the pip [docs](https://pip.pypa.io/en/stable/installing/) on how to download and install pip.
-    *sumologic-slack* is compatible with python 3.7 and python 2.7. It has been tested on Ubuntu 18.04 LTS and Debian 4.9.130.
+    *sumologic-slack* is compatible with python 3.7. It has been tested on Ubuntu 18.04 LTS and Debian 4.9.130.
     Login to a Linux machine and download and follow the below steps:
 
         * Install the collector using below command
-      ``` pip install sumologic-slack```
+      ``` pip3 install sumologic-slack```
 
         * Create a configuration file named slackcollector.yaml in home directory by copying the below snippet.
 
@@ -66,17 +66,15 @@ This collector can be deployed both onprem and on cloud.
             ```
             Token: Paste the Token collected from Slack App from step 1.
             HttpLogsEndpoint: Paste the URL for the HTTP Logs source from step 2.
-            BackfillDays: Enter the Number of days before the event collection will start
-            DatabaseName: Enter the DataBase Name. 
+            BackfillDays: Enter the number of days for which logs should be collected. For eg, 2 means logs for last 2 days.
+            DatabaseName: DynamoDB Table Name. Use the table name to identify the Slack Workspace for which you are collecting logs. Do not use the same DataBase Name across multiple installations.
             EnableInfrequentChannels: Default is false. 
                                       true -> Enable dividing channels into frequent and infrequent based on the last message time.
                                       false -> Send all public channels messages.
-            InfrequentChannelsThresholdInHours: Default is 72.
-                                                Threshold in hours to make channels as infrequent based on last message time. 
-                                                For eg, 12 hours means if the message is not recived for 12 hours, channel will be marked as infrequent.
-            InfrequentChannelsMessagesFetchTimeInHours: Default is 12.
-                                                        Time in hours to fetch messages for InFrequent channels.
-                                                        For eg, 12 hours means send infrequent channels messages every 12 hours.
+            CreateSecret: Default is No.
+                                      Yes -> Encrypt the Provided Environment variables HTTP_LOGS_ENDPOINT, TOKEN using KMS and Secret Manager.
+                                      No -> No encryption.
+            AwsKmsKeyARN: Please provide an existing KMS Key ARN to encrypt the Environment variables HTTP_LOGS_ENDPOINT, TOKEN. If kept empty, a new KMS Key ID will be created if CreateSecret is Yes.
             ```
         * Click Deploy.
 

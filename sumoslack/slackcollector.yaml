@@ -21,6 +21,9 @@ Slack:
   INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS: 12
   # Number of channels to send messages for during individual lambda invocation
   INFREQUENT_CHANNELS_CHUNK_SIZE: 50
+  # Increase the Page Counter value to fetch more access Logs in a Execution. Default is to fetch 2 Access Logs Page.
+  # Max Pages that can be fetched is 100. For better performance, keep the default value.
+  ACCESS_LOGS_PAGE_COUNTER: 2
 
 Logging:
   LOG_FORMAT: "%(levelname)s | %(asctime)s | %(threadName)s | %(name)s | %(message)s"
@@ -54,3 +57,9 @@ DeployMetaData:
 
 SumoLogic:
   HTTP_LOGS_ENDPOINT: null
+
+Secrets:
+  DECRYPT_KEYS: false
+  KEYS:
+    HTTP_LOGS_ENDPOINT: AwsSecretManager
+    TOKEN: AwsSecretManager

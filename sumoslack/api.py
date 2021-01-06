@@ -513,46 +513,72 @@ class ChannelsMessagesAPI(FetchPaginatedDataBasedOnLatestAndOldestTimeStamp):
     def transform_data(self, content):
         if "messages" in content and len(content["messages"]) > 0:
             messages = content["messages"]
+            modified_messages = []
             for data in messages:
-                if "files" in data:
-                    files = []
-                    for file_data in data["files"]:
-                        modified_file_data = {"name": file_data["name"], "fileType": file_data["filetype"],
-                                              "fileSize": file_data.get("size", 0),
-                                              "urlPrivate": file_data.get("url_private", ""),
-                                              "urlPrivateDownload": file_data.get("url_private_download", ""),
-                                              "permalink": file_data.get("permalink", "")}
-                        files.append(modified_file_data)
-                    data["files"] = files
-
-                if "attachments" in data:
-                    attachments = []
-                    for attachment_data in data["attachments"]:
-                        modified_attachment_data = {"id": attachment_data["id"],
-                                                    "text": attachment_data.get("text", ""),
-                                                    "author_name": attachment_data.get("author_name", ""),
-                                                    "author_link": attachment_data.get("author_link", ""),
-                                                    "pretext": attachment_data.get("pretext", ""),
-                                                    "fallback": attachment_data.get("fallback", "")}
-                        attachments.append(modified_attachment_data)
-                    data["attachments"] = attachments
-
-                if "user" in data and self.kvstore.has_key(data["user"]):
-                    data["userName"] = self.kvstore.get(data["user"])["user_name"]
-
-                data["channelId"] = self.channel_id
-                data["channelName"] = self.channel_name
-                data["teamName"] = self.team_name
-                data["logType"] = "ConversationLog"
-
-                if "is_starred" in data:
-                    data.pop("is_starred")
-                if "pinned_to" in data:
-                    data.pop("pinned_to")
-                if "reactions" in data:
-                    data.pop("reactions")
-            return messages
+                # Check the message has replies, if yes, call conversations.replies and append all replies to messages
+                if "reply_count" in data and data["reply_count"] >= 1:
+                    modified_messages.extend(self.get_replies(data))
+                else:
+                    modified_messages.append(self.transform_message(data))
+            return modified_messages
         return []
+
+    def get_replies(self, data):
+        replies = []
+        response = self.slackClient.api_call("conversations.replies", channel=self.channel_id, ts=data["ts"], limit=500)
+        replies.extend(self.transform_replies(response))
+        while "has_more" in response and response["has_more"]:
+            response = self.slackClient.api_call("conversations.replies", channel=self.channel_id, ts=data["ts"],
+                                                 limit=500, cursor=response["response_metadata"]["next_cursor"])
+            replies.extend(self.transform_replies(response))
+        return replies
+
+    def transform_replies(self, response):
+        replies = []
+        if "messages" in response:
+            for message in response["messages"]:
+                replies.append(self.transform_message(message))
+        return replies
+
+    def transform_message(self, data):
+        if "files" in data:
+            files = []
+            for file_data in data["files"]:
+                modified_file_data = {"name": file_data["name"], "fileType": file_data["filetype"],
+                                      "fileSize": file_data.get("size", 0),
+                                      "urlPrivate": file_data.get("url_private", ""),
+                                      "urlPrivateDownload": file_data.get("url_private_download", ""),
+                                      "permalink": file_data.get("permalink", "")}
+                files.append(modified_file_data)
+            data["files"] = files
+
+        if "attachments" in data:
+            attachments = []
+            for attachment_data in data["attachments"]:
+                modified_attachment_data = {"id": attachment_data["id"],
+                                            "text": attachment_data.get("text", ""),
+                                            "author_name": attachment_data.get("author_name", ""),
+                                            "author_link": attachment_data.get("author_link", ""),
+                                            "pretext": attachment_data.get("pretext", ""),
+                                            "fallback": attachment_data.get("fallback", "")}
+                attachments.append(modified_attachment_data)
+            data["attachments"] = attachments
+
+        if "user" in data and self.kvstore.has_key(data["user"]):
+            data["userName"] = self.kvstore.get(data["user"])["user_name"]
+
+        data["channelId"] = self.channel_id
+        data["channelName"] = self.channel_name
+        data["teamName"] = self.team_name
+        data["logType"] = "ConversationLog"
+
+        if "is_starred" in data:
+            data.pop("is_starred")
+        if "pinned_to" in data:
+            data.pop("pinned_to")
+        if "reactions" in data:
+            data.pop("reactions")
+        return data
 
 
 class AccessLogsAPI(FetchPaginatedDataBasedOnPageNumber):

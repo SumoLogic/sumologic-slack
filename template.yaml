@@ -1,8 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'This solution consists of a lambda functions which is used to fetch
-  logs from Slack and ingest to Sumo Logic.
+Description: 'This solution consists of a lambda functions which is used to fetch logs from Slack and ingest to Sumo Logic.'
+Transform: AWS::Serverless-2016-10-31
 
-  '
 Metadata:
   AWS::ServerlessRepo::Application:
     Author: Sumo Logic
@@ -10,59 +9,114 @@ Metadata:
       logs from Slack and ingest to Sumo Logic.
     HomePageUrl: https://github.com/SumoLogic/sumologic-slack
     Labels:
-    - lambda
-    - sumologic
-    - serverless
-    - Slack
+      - lambda
+      - sumologic
+      - serverless
+      - Slack
     LicenseUrl: ./LICENSE
     Name: sumologic-slack
     ReadmeUrl: ./README.md
-    SemanticVersion: 1.0.10
+    SemanticVersion: 1.1.0
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
-Outputs:
-  SlackFunction:
-    Description: SlackScheduler Function ARN
-    Value:
-      Fn::GetAtt:
-      - SlackFunction
-      - Arn
+
+Conditions:
+  create_kms_key:
+    Fn::And:
+      - Fn::Equals:
+          - Ref: AwsKmsKeyARN
+          - ''
+      - Condition: create_secret
+  create_secret:
+    Fn::Equals:
+      - Ref: CreateSecret
+      - 'Yes'
+
 Parameters:
+  AwsKmsKeyARN:
+    Default: ''
+    Description: Please provide an existing KMS Key ARN to encrypt the Environment
+      variables HTTP_LOGS_ENDPOINT, TOKEN. If kept empty, a new KMS Key ID will be
+      created if CreateSecret is Yes.
+    Type: String
   BackfillDays:
     Type: String
-    Description: Enter the number of days for which logs should be collected. For eg, 2 means logs for last 2 days.
-    AllowedPattern: ".+"
+    Description: Enter the number of days for which logs should be collected. For
+      eg, 2 means logs for last 2 days.
+    AllowedPattern: .+
+  CreateSecret:
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+    Default: 'No'
+    Description: Yes -> Encrypt the Provided Environment variables HTTP_LOGS_ENDPOINT,
+      TOKEN using KMS and Secret Manager. No -> No encryption.
+    Type: String
   HttpLogsEndpoint:
     Type: String
     Description: Paste the URL for the HTTP Logs source.
-    AllowedPattern: ".+"
+    AllowedPattern: .+
     NoEcho: true
   Token:
     Type: String
     Description: Paste the TOKEN generated from Slack App.
-    AllowedPattern: ".+"
+    AllowedPattern: .+
     NoEcho: true
   EnableInfrequentChannels:
     Type: String
-    Description: "True -> Enable dividing channels into frequent and infrequent based on the last message time.
-                  False -> Send all public channels messages."
+    Description: True -> Enable dividing channels into frequent and infrequent based
+      on the last message time. False -> Send all public channels messages.
     AllowedValues:
       - true
       - false
     Default: false
-  InfrequentChannelsThresholdInHours:
-    Type: String
-    Description: Threshold in hours to make channels as infrequent based on last message time. For eg, 12 hours means if the message is not recived for 12 hours, channel will be marked as infrequent.
-    Default: 72
-  InfrequentChannelsMessagesFetchTimeInHours:
-    Type: String
-    Description: Time in hours to fetch messages for InFrequent channels. For eg, 12 hours means send infrequent channels messages every 12 hours.
-    Default: 12
   DatabaseName:
     Type: String
-    Description: "DynamoDB DataBase Table Name."
+    Description: DynamoDB Table Name. Use the table name to identify the Slack Workspace for which you are collecting logs. Do not use the same DataBase Name across multiple installations.
     Default: sumoslack
+
 Resources:
+  LambdaRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+      Path: /
+    Type: AWS::IAM::Role
+
+  SecretPolicy:
+    Condition: create_secret
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - secretsmanager:GetSecretValue
+            Effect: Allow
+            Resource:
+              Ref: SumoLogicSecret
+          - Action:
+              - kms:Decrypt
+            Effect: Allow
+            Resource:
+              Fn::If:
+                - create_kms_key
+                - Fn::GetAtt:
+                    - SumoLogicKMSKey
+                    - Arn
+                - Ref: AwsKmsKeyARN
+        Version: '2012-10-17'
+      PolicyName: SecretManager-Policy
+      Roles:
+        - Ref: LambdaRole
+    Type: AWS::IAM::Policy
+
   SlackFunction:
     Properties:
       CodeUri: ./target/aws/build/
@@ -72,32 +126,102 @@ Resources:
         Variables:
           BACKFILL_DAYS:
             Ref: BackfillDays
+          DBNAME:
+            Ref: DatabaseName
+          ENABLE_INFREQUENT_CHANNELS:
+            Ref: EnableInfrequentChannels
+          DECRYPT_KEYS:
+            Fn::If:
+              - create_secret
+              - 'true'
+              - 'false'
           ENABLE_CONSOLE_LOG: 'false'
           ENVIRONMENT: aws
           HTTP_LOGS_ENDPOINT:
-            Ref: HttpLogsEndpoint
+            Fn::If:
+              - create_secret
+              - Ref: SumoLogicSecret
+              - Ref: HttpLogsEndpoint
           TOKEN:
-            Ref: Token
-          ENABLE_INFREQUENT_CHANNELS:
-            Ref: EnableInfrequentChannels
-          INFREQUENT_CHANNELS_THRESHOLD_IN_HOURS:
-            Ref: InfrequentChannelsThresholdInHours
-          INFREQUENT_CHANNELS_MESSAGES_FETCH_TIME_IN_HOURS:
-            Ref: InfrequentChannelsMessagesFetchTimeInHours
-          DBNAME:
-            Ref: DatabaseName
+            Fn::If:
+              - create_secret
+              - Ref: SumoLogicSecret
+              - Ref: Token
       Events:
         ScheduleRule:
           Properties:
             Schedule: rate(10 minutes)
           Type: Schedule
       Handler: main.main
-      Layers:
-      - Fn::Sub: arn:aws:lambda:${AWS::Region}:956882708938:layer:Slack-deps:5
       MemorySize: 256
       Policies:
-      - AmazonDynamoDBFullAccess
+        - AmazonDynamoDBFullAccess
+      Role:
+        Fn::GetAtt:
+          - LambdaRole
+          - Arn
       Runtime: python3.7
       Timeout: 900
+      Layers:
+        - Fn::Sub: arn:aws:lambda:${AWS::Region}:956882708938:layer:Slack-deps:5
     Type: AWS::Serverless::Function
-Transform: AWS::Serverless-2016-10-31
+
+  SumoLogicKMSAlias:
+    Condition: create_kms_key
+    Properties:
+      AliasName:
+        Fn::Sub: alias/SumoLogic-Secret-${AWS::StackName}
+      TargetKeyId:
+        Ref: SumoLogicKMSKey
+    Type: AWS::KMS::Alias
+
+  SumoLogicKMSKey:
+    Condition: create_kms_key
+    Properties:
+      Description:
+        Fn::Sub: This is KMS Key Id used to encrypt and decrypt the Secret SumoLogic-Secret-${AWS::StackName}
+          for CloudFormation Stack ${AWS::StackName}.
+      EnableKeyRotation: true
+      KeyPolicy:
+        Id: key-default-1
+        Statement:
+          - Action: kms:*
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ''
+                  - - 'arn:aws:iam::'
+                    - Ref: AWS::AccountId
+                    - :root
+            Resource: '*'
+            Sid: Enable IAM User Permissions
+        Version: '2012-10-17'
+    Type: AWS::KMS::Key
+
+  SumoLogicSecret:
+    Condition: create_secret
+    Properties:
+      Description:
+        Fn::Sub: This is Secret Manager to Store Environment variables HTTP_LOGS_ENDPOINT,
+          TOKEN for CloudFormation Stack ${AWS::StackName}.
+      KmsKeyId:
+        Fn::If:
+          - create_kms_key
+          - Fn::GetAtt:
+              - SumoLogicKMSKey
+              - Arn
+          - Ref: AwsKmsKeyARN
+      Name:
+        Fn::Sub: SumoLogic-Secret-${AWS::StackName}
+      SecretString:
+        Fn::Sub: '{"HTTP_LOGS_ENDPOINT": "${HttpLogsEndpoint}", "TOKEN": "${Token}"}'
+    Type: AWS::SecretsManager::Secret
+
+Outputs:
+  SlackFunction:
+    Description: SlackScheduler Function ARN
+    Value:
+      Fn::GetAtt:
+        - SlackFunction
+        - Arn
