@@ -13,10 +13,10 @@ Metadata:
     - sumologic
     - serverless
     - Slack
-    LicenseUrl: s3://appdevstore/Slack/v1.1.0/5122657d5b9a0d3713e24d3a33eae431
+    LicenseUrl: s3://appdevstore/Slack/v1.1.1/5122657d5b9a0d3713e24d3a33eae431
     Name: sumologic-slack
-    ReadmeUrl: s3://appdevstore/Slack/v1.1.0/ee1c18331fdb7a8c193c6fd14d1884bb
-    SemanticVersion: 1.1.0
+    ReadmeUrl: s3://appdevstore/Slack/v1.1.1/ee1c18331fdb7a8c193c6fd14d1884bb
+    SemanticVersion: 1.1.1
     SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
     SpdxLicenseId: Apache-2.0
 Conditions:
@@ -116,7 +116,7 @@ Resources:
     Type: AWS::IAM::Policy
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore/Slack/v1.1.0/ab746e7332ba2be68a8184fa94875d38
+      CodeUri: s3://appdevstore/Slack/v1.1.1/4300a19d107fe4bf5c96ca0aab7ae7bb
       Description: This function gets triggered perodically via CloudWatchEvents and
         fetches logs from Slack and ingest to SumoLogic
       Environment:
@@ -151,8 +151,6 @@ Resources:
           Type: Schedule
       Handler: main.main
       MemorySize: 256
-      Policies:
-      - AmazonDynamoDBFullAccess
       Role:
         Fn::GetAtt:
         - LambdaRole

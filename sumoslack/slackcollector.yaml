@@ -48,6 +48,7 @@ Collection:
   BACKFILL_DAYS: null
   DBNAME: "sumoslack"
   DB_DIR: "~/sumo/"
+  IS_SHUFFLE_TASKS: false
 
 DeployMetaData:
   PACKAGENAME: sumologic-slack
