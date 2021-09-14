@@ -77,4 +77,11 @@ This collector can be deployed both onprem and on cloud.
             AwsKmsKeyARN: Please provide an existing KMS Key ARN to encrypt the Environment variables HTTP_LOGS_ENDPOINT, TOKEN. If kept empty, a new KMS Key ID will be created if CreateSecret is Yes.
             ```
         * Click Deploy.
+        
+    *** For internal read only ***
 
+    To run use below command
+        python -m sumoslack.main <path to sumocollector.yaml>
+
+     To build use below command
+        sumoappclient -e <env> -d <deployment> -c <path to sumocollector.yaml>
