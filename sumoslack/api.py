@@ -1,5 +1,5 @@
 import time
-
+import os
 import sys
 
 sys.path.insert(0, '/opt')  # layer packages are in opt directory
@@ -710,6 +710,9 @@ class AuditLogsAPI(FetchAuditData):
                     if entity_type in entity:
                         data = entity[entity_type]
                         entry["entity"] = data
+                        if  entry.get("logType") == "FileAuditLog" and data.get("filetype","").strip()=="" :
+                            filename, file_extension = os.path.splitext(data.get("name",""))
+                            data["filetype"]=file_extension if file_extension else "Unknown"
 
                 if hasattr(self, "excludeList") and action in self.excludeList:
                     self.log.debug("Audit Log Entry Skipped for Action - " + action)

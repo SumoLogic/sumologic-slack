@@ -176,9 +176,9 @@ class SumoSlackCollector(BaseCollector):
                         elif "user" == actionName:
                             self.UserAuditActions = values
                         elif "file" == actionName:
-                            self.ChannelAuditActions = values
-                        elif "channel" == actionName:
                             self.FileAuditActions = values
+                        elif "channel" == actionName:
+                            self.ChannelAuditActions = values
                         elif "app" == actionName:
                             self.AppAuditActions = values
                         else:
