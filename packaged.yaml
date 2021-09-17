@@ -1,24 +1,4 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: This solution consists of a lambda functions which is used to fetch logs
-  from Slack and ingest to Sumo Logic.
-Transform: AWS::Serverless-2016-10-31
-Metadata:
-  AWS::ServerlessRepo::Application:
-    Author: Sumo Logic
-    Description: This solution consists of a lambda functions which is used to fetch
-      logs from Slack and ingest to Sumo Logic.
-    HomePageUrl: https://github.com/SumoLogic/sumologic-slack
-    Labels:
-    - lambda
-    - sumologic
-    - serverless
-    - Slack
-    LicenseUrl: s3://appdevstore/Slack/v1.1.1/5122657d5b9a0d3713e24d3a33eae431
-    Name: sumologic-slack
-    ReadmeUrl: s3://appdevstore/Slack/v1.1.1/ee1c18331fdb7a8c193c6fd14d1884bb
-    SemanticVersion: 1.1.1
-    SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
-    SpdxLicenseId: Apache-2.0
 Conditions:
   create_kms_key:
     Fn::And:
@@ -30,6 +10,32 @@ Conditions:
     Fn::Equals:
     - Ref: CreateSecret
     - 'Yes'
+Description: This solution consists of a lambda functions which is used to fetch logs
+  from Slack and ingest to Sumo Logic.
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Author: Sumo Logic
+    Description: This solution consists of a lambda functions which is used to fetch
+      logs from Slack and ingest to Sumo Logic.
+    HomePageUrl: https://github.com/SumoLogic/sumologic-slack
+    Labels:
+    - lambda
+    - sumologic
+    - serverless
+    - Slack
+    LicenseUrl: s3://appdevstore/Slack/v1.1.2/5122657d5b9a0d3713e24d3a33eae431
+    Name: sumologic-slack
+    ReadmeUrl: s3://appdevstore/Slack/v1.1.2/756b485bdd6d5b07ca8a0a75bdc29df9
+    SemanticVersion: 1.1.2
+    SourceCodeUrl: https://github.com/SumoLogic/sumologic-slack
+    SpdxLicenseId: Apache-2.0
+Outputs:
+  SlackFunction:
+    Description: SlackScheduler Function ARN
+    Value:
+      Fn::GetAtt:
+      - SlackFunction
+      - Arn
 Parameters:
   AwsKmsKeyARN:
     Default: ''
@@ -38,10 +44,10 @@ Parameters:
       created if CreateSecret is Yes.
     Type: String
   BackfillDays:
-    Type: String
+    AllowedPattern: .+
     Description: Enter the number of days for which logs should be collected. For
       eg, 2 means logs for last 2 days.
-    AllowedPattern: .+
+    Type: String
   CreateSecret:
     AllowedValues:
     - 'Yes'
@@ -50,30 +56,30 @@ Parameters:
     Description: Yes -> Encrypt the Provided Environment variables HTTP_LOGS_ENDPOINT,
       TOKEN using KMS and Secret Manager. No -> No encryption.
     Type: String
-  HttpLogsEndpoint:
+  DatabaseName:
+    Default: sumoslack
+    Description: DynamoDB Table Name. Use the table name to identify the Slack Workspace
+      for which you are collecting logs. Do not use the same DataBase Name across
+      multiple installations.
     Type: String
-    Description: Paste the URL for the HTTP Logs source.
-    AllowedPattern: .+
-    NoEcho: true
-  Token:
-    Type: String
-    Description: Paste the TOKEN generated from Slack App.
-    AllowedPattern: .+
-    NoEcho: true
   EnableInfrequentChannels:
-    Type: String
-    Description: True -> Enable dividing channels into frequent and infrequent based
-      on the last message time. False -> Send all public channels messages.
     AllowedValues:
     - true
     - false
     Default: false
-  DatabaseName:
+    Description: True -> Enable dividing channels into frequent and infrequent based
+      on the last message time. False -> Send all public channels messages.
     Type: String
-    Description: DynamoDB Table Name. Use the table name to identify the Slack Workspace
-      for which you are collecting logs. Do not use the same DataBase Name across
-      multiple installations.
-    Default: sumoslack
+  HttpLogsEndpoint:
+    AllowedPattern: .+
+    Description: Paste the URL for the HTTP Logs source.
+    NoEcho: true
+    Type: String
+  Token:
+    AllowedPattern: .+
+    Description: Paste the TOKEN generated from Slack App.
+    NoEcho: true
+    Type: String
 Resources:
   LambdaRole:
     Properties:
@@ -116,7 +122,7 @@ Resources:
     Type: AWS::IAM::Policy
   SlackFunction:
     Properties:
-      CodeUri: s3://appdevstore/Slack/v1.1.1/4300a19d107fe4bf5c96ca0aab7ae7bb
+      CodeUri: s3://appdevstore/Slack/v1.1.2/a8ba6fb745371ef9617e510782743b5b
       Description: This function gets triggered perodically via CloudWatchEvents and
         fetches logs from Slack and ingest to SumoLogic
       Environment:
@@ -125,14 +131,14 @@ Resources:
             Ref: BackfillDays
           DBNAME:
             Ref: DatabaseName
-          ENABLE_INFREQUENT_CHANNELS:
-            Ref: EnableInfrequentChannels
           DECRYPT_KEYS:
             Fn::If:
             - create_secret
             - 'true'
             - 'false'
           ENABLE_CONSOLE_LOG: 'false'
+          ENABLE_INFREQUENT_CHANNELS:
+            Ref: EnableInfrequentChannels
           ENVIRONMENT: aws
           HTTP_LOGS_ENDPOINT:
             Fn::If:
@@ -150,6 +156,8 @@ Resources:
             Schedule: rate(10 minutes)
           Type: Schedule
       Handler: main.main
+      Layers:
+      - Fn::Sub: arn:aws:lambda:${AWS::Region}:956882708938:layer:Slack-deps:10
       MemorySize: 256
       Role:
         Fn::GetAtt:
@@ -157,8 +165,6 @@ Resources:
         - Arn
       Runtime: python3.7
       Timeout: 900
-      Layers:
-      - Fn::Sub: arn:aws:lambda:${AWS::Region}:956882708938:layer:Slack-deps:5
     Type: AWS::Serverless::Function
   SumoLogicKMSAlias:
     Condition: create_kms_key
@@ -209,10 +215,4 @@ Resources:
       SecretString:
         Fn::Sub: '{"HTTP_LOGS_ENDPOINT": "${HttpLogsEndpoint}", "TOKEN": "${Token}"}'
     Type: AWS::SecretsManager::Secret
-Outputs:
-  SlackFunction:
-    Description: SlackScheduler Function ARN
-    Value:
-      Fn::GetAtt:
-      - SlackFunction
-      - Arn
+Transform: AWS::Serverless-2016-10-31
