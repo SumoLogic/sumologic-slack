@@ -21,6 +21,7 @@ class SlackAPI(BaseAPI):
         # Set Slack configuration and create Slack Client
         self.api_config = self.config['Slack']
         self.token = self.config['Slack']['TOKEN']
+        self.audit_token = self.config['Slack']['AUDIT_TOKEN'] if "AUDIT_TOKEN" in self.config['Slack'] else self.token
         self.slackClient = SlackClient(self.token)
 
     def get_window(self, last_time_epoch):
@@ -226,7 +227,7 @@ class FetchAuditData(FetchCursorBasedData):
                                                           MAX_RETRY=self.collection_config['MAX_RETRY'],
                                                           BACKOFF_FACTOR=self.collection_config['BACKOFF_FACTOR'],
                                                           params=args,
-                                                          headers={"Authorization": "Bearer " + self.token})
+                                                          headers={"Authorization": "Bearer " + self.audit_token})
                 fetch_success = status and "entries" in result
                 if fetch_success:
                     data_to_be_sent = self.transform_data(result)

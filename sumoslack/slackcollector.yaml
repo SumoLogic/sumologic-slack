@@ -1,5 +1,6 @@
 Slack:
   TOKEN: null
+  AUDIT_TOKEN: null
   AUDIT_LOG_URL: https://api.slack.com/audit/v1/
   LOG_TYPES:
     - USER_LOGS
