@@ -1,6 +1,10 @@
 # sumologic-slack
 
-Solution to pull logs from Slack to Sumo Logic
+## Deprecation Notice
+
+This legacy solution to pull logs from Slack to Sumo Logic has been replaced with a dedicated Cloud-to-Cloud Integration Framework source. We recommend customers use the [Slack Cloud-to-Cloud source](https://help.sumologic.com/docs/send-data/hosted-collectors/cloud-to-cloud-integration-framework/slack-source/) instead of this legacy Python collection method.
+
+https://help.sumologic.com/docs/send-data/hosted-collectors/cloud-to-cloud-integration-framework/slack-source/
 
 
 ## Installation
